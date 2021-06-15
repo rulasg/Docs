@@ -250,7 +250,7 @@ function DocsTest_Find_MultiFolder {
 
     # Owner 1
 
-    Assert-Count -Expected 4 -Presented (Get-ChildItem -filter "*.test*" -Recurse)
+    Assert-Count -Expected 4 -Presented (Get-ChildItem -File -Recurse)
 
     $result = Find-DocsFile -Owner Test1
 
@@ -299,9 +299,13 @@ function DocsTest_Find_MultiFolder {
     Assert-Count -Expected 1 -Presented $result
     Assert-AreEqualPath -Expected $FileFullName13 -Presented $result[0]
 
+    # Object
+
+    $result = $filename2 | Find-DocsFile
+    Assert-Count -Expected 1 -Presented $result
+    Assert-AreEqualPath -Expected $FileFullName2 -Presented $result[0]
+
 }
-
-
 
 function DocsTest_TestFileName{
 
@@ -351,6 +355,12 @@ function DocsTest_GetFileToMove_All{
     Assert-AreEqual -Expected $FileName23.Name() -Presented $result[3].Name
     Assert-AreEqual -Expected "122012-OtherOwner-Description.txt" -Presented $result[4].Name
     Assert-AreEqual -Expected "122012-OtherOwner-Target-Description.txt" -Presented $result[5].Name
+
+    $result = Get-DocsFileToMove -Target Testing3
+
+    Assert-Count -Expected 2 -Presented $result
+    Assert-AreEqual -Expected $FileName13.Name() -Presented $result[0].Name
+    Assert-AreEqual -Expected $FileName23.Name() -Presented $result[1].Name
 }
 
 function DocsTest_GetFileToMove_Recursive{
@@ -404,7 +414,49 @@ function DocsTest_GetFileToMove_Recursive{
     Assert-AreEqual -Expected $FileName13.Name() -Presented $result[5].Name
 }
 
+function DocsTest_GetFileToMove_SpecificPath{
 
+    $storefolder1 = "." | Join-Path -ChildPath "Fakefolder1" -AdditionalChildPath "FakeStoreFolder1"
+
+    $null = New-Item -ItemType Directory -Path $storefolder1 -Force
+
+    $filename1  = Get-DocsFileName -Owner Test1 -Target Testing1 -Description "Test0 File1"  -Type test1 -Date 100101
+    $filename13 = Get-DocsFileName -Owner Test1 -Target Testing3 -Description "Test File13" -Type test1  -Date 110213
+    $localfile  = Get-DocsFileName -Owner Test2 -Target Testing2 -Description "Test0 File2"  -Type test1 -Date 100201
+
+    $FileFullName1 = Join-Path -Path $storefolder1 -ChildPath $FileName1.Name()
+    $FileFullName13 = Join-Path -Path $storefolder1 -ChildPath $FileName13.Name()
+
+    "This content is fake" | Out-File -FilePath $FileFullName1
+    "This content is fake" | Out-File -FilePath $FileFullName13
+    "This content is fake" | Out-File -FilePath $localfile.Name()
+
+    Assert-Count -Expected 3 -Presented (Get-ChildItem -File -Recurse)
+
+    $result = Get-DocsFileToMove -Path $FileFullName1
+    
+    Assert-Count -Expected 1 -Presented $result
+    Assert-AreEqualPath -Expected $FileFullName1 -Presented $result[0].FullName
+    
+    $result = Get-DocsFileToMove -Path $storefolder1
+
+    Assert-Count -Expected 2 -Presented $result
+    Assert-AreEqualPath -Expected $FileFullName1 -Presented $result[0].FullName
+    Assert-AreEqualPath -Expected $FileFullName13 -Presented $result[1].FullName
+
+    $result =  $storefolder1 | Get-DocsFileToMove 
+
+    Assert-Count -Expected 2 -Presented $result
+    Assert-AreEqualPath -Expected $FileFullName1 -Presented $result[0].FullName
+    Assert-AreEqualPath -Expected $FileFullName13 -Presented $result[1].FullName
+
+    $result =  ($storefolder1,$localfile.Name()) | Get-DocsFileToMove 
+
+    Assert-Count -Expected 3 -Presented $result
+    Assert-AreEqualPath -Expected $FileFullName1 -Presented $result[0].FullName
+    Assert-AreEqualPath -Expected $FileFullName13 -Presented $result[1].FullName
+    Assert-AreEqualPath -Expected $localfile.Name() -Presented $result[2].FullName
+}
 
 function DocsTest_MoveFile {
 
@@ -429,7 +481,7 @@ function DocsTest_MoveFile {
 
     Assert-Count -Expected 4 -Presented $local
 
-    
+
 
     Assert-NotImplemented
 
