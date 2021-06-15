@@ -85,7 +85,7 @@ class DocName {
         $ta  = [DocName]::SectionPatternOptional($this.Target)
         $am  = [DocName]::SectionPatternOptional($this.Amount)
         $w   = [DocName]::SectionPatternOptional($this.What)
-        $des = [DocName]::SectionPatternMandatory($this.Description)
+        $des = [DocName]::SectionPatternMandatory($this.Description.Replace(' ','_'))
         $t   = [DocName]::SectionPattern($this.Type)
 
         $pattern = "$d$o$ta$am$w$des.$t"
@@ -108,22 +108,50 @@ function Add-Store {
     param (
         [Parameter(Mandatory)][string] $Owner,
         [Parameter(Mandatory)][string] $Path,   
-        [Parameter()][switch] $IsRecursive
+        [Parameter()][switch] $IsRecursive,
+        [Parameter()][switch] $Force
     )
     
     if (! $script:StoresList) {
         Initialize-StoresList
     }
 
+    if (!($Path | Test-Path) -and $Force) {
+        $null = New-item -ItemType Directory -Force -Path $Path 
+    }
+
+    $o = New-Store -Owner $Owner -Path $Path -IsRecursive:$IsRecursive
+
+    $StoresList.Add($Owner, $o)
+
+} Export-ModuleMember -Function Add-Store
+
+function New-Store{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string] $Owner,
+        [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string] $Path,   
+        [Parameter(ValueFromPipelineByPropertyName)][switch] $IsRecursive
+    )
     $o = New-Object -TypeName DocsStore
     $o.Owner = $Owner
+    if ($Path | Test-Path) {
+        $o.Path = $Path | Convert-Path 
+    } else {
+        if ([System.IO.Path]::IsPathRooted($Path)) {
+            $o.Path = $Path
+        } else {
+            Write-Error ("Path has to be rooted if it does not exit [{0}]" -F $Path)
+            return
+        }
+    }
     $o.Path = [System.IO.Path]::IsPathRooted($Path) ? $Path : (Resolve-Path -Path $Path).Path
     $o.IsRecursive = $IsRecursive
 
     $o.Exist = Test-Path -Path $o.Path
 
-    $StoresList.Add($Owner, $o)
-} Export-ModuleMember -Function Add-Store
+    return $o
+}
 
 function Initialize-StoresList {
     [CmdletBinding()]
@@ -149,9 +177,32 @@ function New-StoresList {
 function Get-Stores {
     [CmdletBinding()]
     param (
+        [parameter()][string] $Owner,
+        [parameter()][switch] $Exist
     )
     
-    $script:StoresList.Values 
+    if ($Owner) {
+        $ret = $script:StoresList[$Owner]
+    } else {
+        $ret = $script:StoresList.Values 
+    }
+
+    if (!$ret) {
+        return
+    }
+
+    $ret | ForEach-Object {
+        $r =  $_ | New-Store
+
+        if ($Exist) {
+            if ($r.Exist) {
+                $r
+            }
+        } else {
+            $r
+        }
+
+    }
 
 } Export-ModuleMember -Function Get-Stores
 
@@ -178,8 +229,30 @@ function Get-Owners {
 
 # Files
 
-Function New-FileName(){return New-Object -TypeName DocName}
+function NewDocName {
+    [CmdletBinding()]
+    Param(
+        [string]$Date,
+        [string]$Owner,
+        [string]$Target,
+        [string]$Amount,
+        [string]$What,
+        [string]$Description,
+        [string]$Type
+    )
 
+    $dn =  New-Object -TypeName DocName
+
+    $dn.Date = $Date
+    $dn.Owner = $Owner
+    $dn.Target = $Target
+    $dn.Amount = $Amount
+    $dn.What = $What
+    $dn.Description = $Description
+    $dn.Type = $Type
+
+    return $dn
+}
 function Get-FileNamePattern{
     [CmdletBinding()]
     Param(
@@ -192,15 +265,14 @@ function Get-FileNamePattern{
         [string]$Type
     )
 
-    $dn = New-FileName
-
-    $dn.Date = $Date
-    $dn.Owner = $Owner
-    $dn.Target = $Target
-    $dn.Amount = $Amount
-    $dn.What = $What
-    $dn.Description = $Description
-    $dn.Type = $Type
+    $dn = NewDocName               `
+        -Date $Date                `
+        -Owner $Owner              `
+        -Target $Target            `
+        -Amount $Amount            `
+        -What $What                `
+        -Description $Description  `
+        -Type $Type                
 
     return $dn.Pattern()
 } Export-ModuleMember -Function Get-FileNamePattern
@@ -210,22 +282,21 @@ function Get-FileName{
     Param(
         [string]$Date,
         [string]$Owner,
-        [Parameter(Mandatory = $true)] [string]$Target,
+        [string]$Target,
         [string]$Amount,
         [string]$What,
-        [Parameter(Mandatory = $true)][string]$Description,
+        [Parameter(Mandatory)][string]$Description,
         [string]$Type
     )
 
-    $dn = New-DocName
-
-    $dn.Date = $Date
-    $dn.Owner = $Owner
-    $dn.Target = $Target
-    $dn.Amount = $Amount
-    $dn.What = $What
-    $dn.Description = $Description
-    $dn.Type = $Type
+    $dn = NewDocName               `
+        -Date $Date                `
+        -Owner $Owner              `
+        -Target $Target            `
+        -Amount $Amount            `
+        -What $What                `
+        -Description $Description  `
+        -Type $Type                
 
     return $dn
     
@@ -234,24 +305,145 @@ function Get-FileName{
 function Find-File {
     [CmdletBinding()]
     Param(
-        [string]$Pattern,
-        [string]$Description,
-        [string]$Date,
-        [string]$Owner,
-        [string]$Target,
-        [string]$What,
-        [string]$Type
+        [parameter(ValueFromPipelineByPropertyName)][string]$Description,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Date,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Target,
+        [parameter(ValueFromPipelineByPropertyName)][string]$What,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Type,
+        [parameter()][string]$Pattern
     )
     
     begin {
         
+        $retFiles = @()
     }
     
     process {
-        
+        if (!$Pattern) {
+            $Pattern = Get-FileNamePattern               `
+            -Date $Date                `
+            -Owner $Owner              `
+            -Target $Target            `
+            -Amount $Amount            `
+            -What $What                `
+            -Description $Description  `
+            -Type $Type 
+        }
+
+        Get-Stores -Exist | ForEach-Object{
+            $retFiles += Get-ChildItem -Path $_.Path -Filter $Pattern -Recurse:$_.IsRecursive
+        }
     }
     
     end {
-        
+        return $retFiles
     }
+} Export-ModuleMember -Function Find-File
+
+function Test-FileName {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Alias("PSPath")][ValidateNotNullOrEmpty()]
+        [string[]] $Path
+    )
+    begin{
+
+        $basepattern = Get-FileNamePattern
+    }
+    process{
+
+        # Exists and is not a director/folder
+        if (!(Test-Path -Path $Path )) { 
+            return $false }
+        if (Test-Path -Path $Path -PathType Container) {
+            return $false}
+
+        $file = Get-Item -Path $Path
+
+        return $file.Name -Like $basepattern
+    }
+} Export-ModuleMember -Function Test-FileName
+
+function Get-FileToMove {
+    [CmdletBinding()]
+    Param(
+        [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Alias("PSPath")][ValidateNotNullOrEmpty()]
+        [string[]] $Path,
+        [parameter()][string]$Pattern,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Description,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Date,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Target,
+        [parameter(ValueFromPipelineByPropertyName)][string]$What,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Type,
+        [parameter()][switch] $Recursive
+    )
+    begin {
+        if (!$Pattern) {
+            $Pattern = Get-FileNamePattern               `
+            -Date $Date                `
+            -Owner $Owner              `
+            -Target $Target            `
+            -Amount $Amount            `
+            -What $What                `
+            -Description $Description  `
+            -Type $Type 
+        }
+
+        $retFiles = @()
+    }
+    
+    process {
+        if (!$Path) { $Path = "." }
+
+        # file name format
+        $files = Get-ChildItem -Path $Path -Filter $Pattern -Recurse:$Recursive
+
+        foreach ($file in $files) 
+        {
+            $nameSplit = $file.Name.Split($splitter)
+            
+            # Check date
+            $date = $nameSplit[0]
+            if (!($date -match "^\d+$")) {
+                Continue
+            }
+            
+            # # Check owners
+            # $owner = $nameSplit[1]
+            # $store = Get-Stores -Owner $Owner -Exist
+            # if (!$store) {
+            #     Continue
+            # }
+
+            # Add to ret
+            $retFiles += $file
+        }
+
+    }
+    
+    end {
+        return $retFiles
+    }
+} Export-ModuleMember -Function Get-FileToMove
+
+function Move-File{
+    [CmdletBinding()]
+    Param(
+        [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Alias("PSPath")][ValidateNotNullOrEmpty()]
+        [string[]] $Path,
+        [parameter()][string]$Pattern,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Description,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Date,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Target,
+        [parameter(ValueFromPipelineByPropertyName)][string]$What,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Type,
+        [parameter()][switch] $Recursive
+        )
 }
+
