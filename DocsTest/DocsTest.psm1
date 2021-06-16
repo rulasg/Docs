@@ -595,7 +595,7 @@ function DocsTest_MoveFile_Path_Exists_ARE_EQUAL_Force {
     Copy-Item -Path $e["filename1"] -Destination $e["FileFullName1"]
     Assert-FilesAreEqual -Expected  $e["filename1"] -Presented $e["FileFullName1"]
 
-    $result = $e["filename1"] | Move-DocsFile  -Force
+    $result =  $e["filename1"] | Move-DocsFile  -Force
     
     Assert-Count         -Expected 1                     -Presented $result
     

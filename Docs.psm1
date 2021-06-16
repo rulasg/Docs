@@ -585,18 +585,49 @@ function Move-File {
             $store = Get-Stores -Owner $Owner
             if ($store.Count -ne 1) {
                 Continue
-            }
+            } 
+            $destination = $Store.Path 
             
             # Move file to Store
 
             try {
-                $Status = Move-FileItem -Path $File.FullName -Destination $Store.Path -Force:$Force
+                $destinationPath = $destination | Join-Path -ChildPath $File.Name
                 
-                # if($PSCmdlet.ShouldProcess($file.Name, "Move Docs File to [{0}]" -f $Store.Owner)){
-                #     Move-FileItem -Path $File.FullName -Destination $Store.Path 
-                # } ElseIf($WhatIfPreference) {
-                #     # Checks when no actions are performed due to WhatIf
-                # }
+                if (!(Test-Path -Path $destinationPath)) {
+                    
+                    $File | Move-Item -Destination $destinationPath -Confirm:$false
+                    $Status = "MOVED"
+                } 
+                else {
+                    #File Exists
+
+                    $hashSource = Get-FileHash -Path $File
+                    $hashDestination = Get-FileHash -Path $destinationPath
+
+                    if ($hashSource.Hash -eq $hashDestination.Hash) {
+                        #Files are equal                    
+                        if ($PSCmdlet.ShouldProcess("$File.Name", "Equal. Leave source ") -and !$Force) {
+                            $status = "ARE_EQUAL"
+                        }
+                        else {
+                            Remove-Item -Path $File
+                            $status = "ARE_EQUAL_REMOVED_SOURCE"
+                        }
+                    }
+                    else {
+                        
+                        if ($PSCmdlet.ShouldProcess("$File.Name", "Not Equal. Do not copy") -and !$Force) {
+                            $status = "ARE_NOT_EQUAL"
+                        } else {
+                            $newFilename = GetFileCopyName($File)
+                            $newDestination = $Destination | Join-Path -ChildPath $newFilename
+                            $File | Copy-Item -Destination $newDestination
+                            $File | Remove-Item
+                            $status = "ARE_NOT_EQUAL_RENAME_SOURCE"
+                        }
+                    }
+                }
+
             }
             catch {
                 $Status = $_.Exception.Message
@@ -643,21 +674,18 @@ function Move-FileItem {
 
             if (!(Test-Path -Path $destinationPath)) {
 
-                $File | Move-Item -Destination $destinationPath
+                $File | Move-Item -Destination $destinationPath -Confirm:$false
                 $Status = "MOVED"
             } 
-            else 
-            {
+            else {
                 #File Exists
                 $hashSource = Get-FileHash -Path $File
                 $hashDestination = Get-FileHash -Path $destinationPath
 
                 if ($hashSource.Hash -eq $hashDestination.Hash) {
-                    #Files are equal
-                    if ($Force) {
-                        if ($PSCmdlet.ShouldProcess("File.Name", "Operation")) {
-                            
-                        }
+
+                    #Files are equal                    
+                    if ($PSCmdlet.ShouldProcess("$File.Name", "ARE_EQUAL_REMOVED_SOURCE")) {
                         Remove-Item -Path $File
                         $status = "ARE_EQUAL_REMOVED_SOURCE"
                     }
@@ -688,15 +716,14 @@ function Move-FileItem {
     }
 }
 
-function GetFileCopyName([string] $Path)
-{
+function GetFileCopyName([string] $Path) {
     $file = $Path | Get-Item 
     $nameBase = $file.Name
     $targetFullname = $file.FullName
     $count = 0
-    while (Test-Path -Path $targetFullname){
+    while (Test-Path -Path $targetFullname) {
         $count++
-        $nameBase =  $File.BaseName + "($count)" + $File.Extension
+        $nameBase = $File.BaseName + "($count)" + $File.Extension
         $targetFullname = Join-Path -Path $file.Directory -ChildPath $nameBase
     }
 
