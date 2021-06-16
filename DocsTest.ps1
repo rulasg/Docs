@@ -1,9 +1,9 @@
 [CmdletBinding()]
 param ()
 
-$ModuleName = "BaseSdk"
+$ModuleName = "Docs"
 
 Import-Module -Name TestingHelper -Force
 
-Test-Module -Name Docs 
+Test-Module -Name $ModuleName 
 

@@ -41,32 +41,32 @@ class DocName {
     [string] $Type #Mandatory
 
     #ctor
-    DocName(){
+    DocName() {
         $this.Description = [string]::Empty
     }
 
     # Interna Functions
 
-    [string] hidden static Section([string] $sectionName) { if ($sectionName) {return "-$sectionName"} else {return [string]::Empty}}
-    [string] hidden static SectionPatternMandatory([string] $p ) { if($p){ return "-*$p*" } else { return "-*" } }
-    [string] hidden static SectionPatternOptional ([string] $p ) { if($p){ return "-*$p*" } else { return [string]::Empty } }
-    [string] hidden static SectionPattern     ([string] $p ) { if($p){ return "*$p*" } else { return "*" } }
+    [string] hidden static Section([string] $sectionName) { if ($sectionName) { return "-$sectionName" } else { return [string]::Empty } }
+    [string] hidden static SectionPatternMandatory([string] $p ) { if ($p) { return "-*$p*" } else { return "-*" } }
+    [string] hidden static SectionPatternOptional ([string] $p ) { if ($p) { return "-*$p*" } else { return [string]::Empty } }
+    [string] hidden static SectionPattern     ([string] $p ) { if ($p) { return "*$p*" } else { return "*" } }
 
     # API
 
-    [string] Name(){
+    [string] Name() {
 
         #Mandatory fields
-        if ($this.Date)         { $d   = $this.Date  } else { $d = Get-Date -Format 'yyMMdd' }
-        if ($this.Owner)        { $o   = $this.Owner } else { $o = [DocName]::DEFAULT_OWNER }
-        if ($this.Type)         { $t   = $this.Type  } else { $t = [DocName]::DEFAULT_TYPE }
-        if ($this.Description)  { $des = $this.Description.Replace(' ','_') } else { $des = [DocName]::DEFAULT_DESCRIPTION }
+        if ($this.Date) { $d = $this.Date } else { $d = Get-Date -Format 'yyMMdd' }
+        if ($this.Owner) { $o = $this.Owner } else { $o = [DocName]::DEFAULT_OWNER }
+        if ($this.Type) { $t = $this.Type } else { $t = [DocName]::DEFAULT_TYPE }
+        if ($this.Description) { $des = $this.Description.Replace(' ', '_') } else { $des = [DocName]::DEFAULT_DESCRIPTION }
     
         #d
-        $o   = [DocName]::Section($o)
-        $ta  = [DocName]::Section($this.Target)
-        $am  = [DocName]::Section($this.Amount)
-        $w   = [DocName]::Section($this.What)
+        $o = [DocName]::Section($o)
+        $ta = [DocName]::Section($this.Target)
+        $am = [DocName]::Section($this.Amount)
+        $w = [DocName]::Section($this.What)
         $des = [DocName]::Section($des)
         #t
 
@@ -77,15 +77,15 @@ class DocName {
         return $name
     }
 
-    [string] Pattern(){
+    [string] Pattern() {
 
-        $d   = [DocName]::SectionPattern($this.Date)
-        $o   = [DocName]::SectionPatternMandatory($this.Owner)
-        $ta  = [DocName]::SectionPatternOptional($this.Target)
-        $am  = [DocName]::SectionPatternOptional($this.Amount)
-        $w   = [DocName]::SectionPatternOptional($this.What)
-        $des = [DocName]::SectionPatternMandatory($this.Description.Replace(' ','_'))
-        $t   = [DocName]::SectionPattern($this.Type)
+        $d = [DocName]::SectionPattern($this.Date)
+        $o = [DocName]::SectionPatternMandatory($this.Owner)
+        $ta = [DocName]::SectionPatternOptional($this.Target)
+        $am = [DocName]::SectionPatternOptional($this.Amount)
+        $w = [DocName]::SectionPatternOptional($this.What)
+        $des = [DocName]::SectionPatternMandatory($this.Description.Replace(' ', '_'))
+        $t = [DocName]::SectionPattern($this.Type)
 
         $pattern = "$d$o$ta$am$w$des.$t"
 
@@ -94,7 +94,7 @@ class DocName {
         return $pattern
     }
 
-    [bool] IsValid(){
+    [bool] IsValid() {
 
         # Check date
         if (![DocName]::TestDate($this.Date)) {
@@ -122,18 +122,18 @@ class DocName {
 
     }
 
-    [string] Sample(){
+    [string] Sample() {
 
         return ("{0}-{1}-{2}-{3}-{4}-{5}.{6}" -f "date", "owner", "target", "amount", "what", "desc", "type")
     }
 
-    static [DocName] ConvertToDocName([string]$fileName){
+    static [DocName] ConvertToDocName([string]$fileName) {
 
         $doc = [DocName]::new()
         
         # Mandatory
         
-        $splitted = $fileName -split [DocName]::SPLITTER,3
+        $splitted = $fileName -split [DocName]::SPLITTER, 3
         if ($splitted.Count -ne 3) {
             return $null
         }
@@ -141,10 +141,10 @@ class DocName {
         $doc.Owner = $splitted[1]
 
         # Look for the extension
-        $doc.Type = ($splitted[2] | Split-Path -Extension) -replace '\.',''
+        $doc.Type = ($splitted[2] | Split-Path -Extension) -replace '\.', ''
         
         # Second split
-        $secondSplit = ($splitted[2] | Split-Path -LeafBase) -split [DocName]::SPLITTER,4
+        $secondSplit = ($splitted[2] | Split-Path -LeafBase) -split [DocName]::SPLITTER, 4
 
         switch ($secondSplit.Count) {
             4 { 
@@ -152,23 +152,24 @@ class DocName {
                 $doc.Amount = $secondSplit[1]
                 $doc.What = $secondSplit[2]
                 $doc.Description = $secondSplit[3]
-             }
-             3{
+            }
+            3 {
                 # Ammount before What
                 $doc.Target = $secondSplit[0]
 
                 if ([DocName]::TestAmmount($secondSplit[1])) {
                     $doc.Amount = $secondSplit[1]
-                } else {
+                }
+                else {
                     $doc.What = $secondSplit[1]
                 }
 
                 $doc.Description = $secondSplit[2]
-             }
-             2 {
+            }
+            2 {
                 $doc.Target = $secondSplit[0]
                 $doc.Description = $secondSplit[1]
-             }
+            }
             Default {
                 $doc.Description = $secondSplit[0]
             }
@@ -176,10 +177,10 @@ class DocName {
 
         return $doc
     }
-    static [bool] hidden TestAmmount([string] $Amount){
+    static [bool] hidden TestAmmount([string] $Amount) {
         return $Amount -match '^[1-9]\d*(\#\d+)?$'
     }
-    static [bool] hidden TestDate([string] $Date){
+    static [bool] hidden TestDate([string] $Date) {
         return $Date -match "^\d+$"
     }
 }
@@ -209,21 +210,23 @@ function Add-Store {
 
 } Export-ModuleMember -Function Add-Store
 
-function New-Store{
+function New-Store {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string] $Owner,
-        [Parameter(Mandatory,ValueFromPipelineByPropertyName)][string] $Path,   
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)][string] $Owner,
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)][string] $Path,   
         [Parameter(ValueFromPipelineByPropertyName)][switch] $IsRecursive
     )
     $o = New-Object -TypeName DocsStore
     $o.Owner = $Owner
     if ($Path | Test-Path) {
         $o.Path = $Path | Convert-Path 
-    } else {
+    }
+    else {
         if ([System.IO.Path]::IsPathRooted($Path)) {
             $o.Path = $Path
-        } else {
+        }
+        else {
             Write-Error ("Path has to be rooted if it does not exit [{0}]" -F $Path)
             return
         }
@@ -266,7 +269,8 @@ function Get-Stores {
     
     if ($Owner) {
         $ret = $script:StoresList[$Owner.ToLower()]
-    } else {
+    }
+    else {
         $ret = $script:StoresList.Values 
     }
 
@@ -275,13 +279,14 @@ function Get-Stores {
     }
 
     $ret | ForEach-Object {
-        $r =  $_ | New-Store
+        $r = $_ | New-Store
 
         if ($Exist) {
             if ($r.Exist) {
                 $r
             }
-        } else {
+        }
+        else {
             $r
         }
 
@@ -295,7 +300,7 @@ function Get-Owners {
         
     )
     
-    Get-Stores | ForEach-Object{
+    Get-Stores | ForEach-Object {
 
         $v = $_
         $o = New-Object -TypeName psobject
@@ -324,7 +329,7 @@ function NewDocName {
         [string]$Type
     )
 
-    $dn =  New-Object -TypeName DocName
+    $dn = New-Object -TypeName DocName
 
     $dn.Date = $Date
     $dn.Owner = $Owner
@@ -336,7 +341,7 @@ function NewDocName {
 
     return $dn
 }
-function Get-FileNamePattern{
+function Get-FileNamePattern {
     [CmdletBinding()]
     Param(
         [string]$Pattern,
@@ -365,7 +370,7 @@ function Get-FileNamePattern{
     return $dn.Pattern()
 } Export-ModuleMember -Function Get-FileNamePattern
 
-function Get-FileName{
+function Get-FileName {
     [CmdletBinding()]
     Param(
         [string]$Date,
@@ -390,14 +395,14 @@ function Get-FileName{
     
 } Export-ModuleMember -Function Get-FileName
 
-function Test-FileName{
+function Test-FileName {
     [CmdletBinding()]
     param(
         [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [Alias("PSPath")][ValidateNotNullOrEmpty()]
         [string[]] $Path
-        )
-    process{
+    )
+    process {
 
         $fileName = $Path | Split-Path -Leaf
 
@@ -407,7 +412,7 @@ function Test-FileName{
     }
 } Export-ModuleMember -Function Test-FileName
 
-function ConvertTo-DocName{
+function ConvertTo-DocName {
     [CmdletBinding()]
     Param(
         [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
@@ -444,23 +449,23 @@ function Find-File {
         [parameter()][switch] $Recurse
     )
     
-        $retFiles = @()
-        $Pattern = Get-FileNamePattern `
-            -Pattern $Pattern          `
-            -Date $Date                `
-            -Owner $Owner              `
-            -Target $Target            `
-            -Amount $Amount            `
-            -What $What                `
-            -Description $Description  `
-            -Type $Type 
+    $retFiles = @()
+    $Pattern = Get-FileNamePattern `
+        -Pattern $Pattern          `
+        -Date $Date                `
+        -Owner $Owner              `
+        -Target $Target            `
+        -Amount $Amount            `
+        -What $What                `
+        -Description $Description  `
+        -Type $Type 
 
-        foreach ($store in $(Get-Stores -Exist)) {
+    foreach ($store in $(Get-Stores -Exist)) {
             
-            $retFiles += Get-ChildItem -Path $store.Path -Filter $Pattern -Recurse:$store.IsRecursive
-        }
+        $retFiles += Get-ChildItem -Path $store.Path -Filter $Pattern -Recurse:$store.IsRecursive
+    }
 
-        return $retFiles
+    return $retFiles
     
 } Export-ModuleMember -Function Find-File
 
@@ -525,8 +530,7 @@ function Get-FileToMove {
         # file name format
         $files = Get-ChildItem -Path $Path -Filter $Pattern -Recurse:$Recurse
 
-        foreach ($file in $files) 
-        {
+        foreach ($file in $files) {
             if (Test-FileName -Path $file) {
                 # Add to ret
                 $retFiles += $file
@@ -539,8 +543,8 @@ function Get-FileToMove {
     }
 } Export-ModuleMember -Function Get-FileToMove
 
-function Move-File{
-    [CmdletBinding()]
+function Move-File {
+    [CmdletBinding(SupportsShouldProcess)]
     Param(
         [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [Alias("PSPath")]
@@ -553,13 +557,14 @@ function Move-File{
         [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
         [parameter(ValueFromPipelineByPropertyName)][string]$What,
         [parameter(ValueFromPipelineByPropertyName)][string]$Type,
-        [parameter()][switch] $Recurse
-        )
-    begin{
+        [parameter()][switch] $Recurse,
+        [parameter()][switch] $Force
+    )
+    begin {
 
     }
 
-    process{
+    process {
 
         $files = Get-FileToMove        `
             -Path $Path                `
@@ -584,12 +589,17 @@ function Move-File{
             
             # Move file to Store
 
-            $status = "MOVED"
             try {
-                MoveFile -Path $File.FullName -Destination $Store.Path 
+                $Status = Move-FileItem -Path $File.FullName -Destination $Store.Path -Force:$Force
+                
+                # if($PSCmdlet.ShouldProcess($file.Name, "Move Docs File to [{0}]" -f $Store.Owner)){
+                #     Move-FileItem -Path $File.FullName -Destination $Store.Path 
+                # } ElseIf($WhatIfPreference) {
+                #     # Checks when no actions are performed due to WhatIf
+                # }
             }
             catch {
-                $status = $_.Exception.Message
+                $Status = $_.Exception.Message
             }
             
 
@@ -603,18 +613,17 @@ function Move-File{
             
             $o
         }
-
     }
 
-    end{
+    end {
     }
 } Export-ModuleMember -Function Move-File
 
-function MoveFile {
-    [CmdletBinding()]
+function Move-FileItem {
+    [CmdletBinding(SupportsShouldProcess)]
     param (
-        [parameter(Mandatory, Position=0, ValueFromPipeline,ValueFromPipelineByPropertyName)] $Path,
-        [parameter(Mandatory, Position=1)] $Destination,
+        [parameter(Mandatory, Position = 0, ValueFromPipeline, ValueFromPipelineByPropertyName)] $Path,
+        [parameter(Mandatory, Position = 1)] $Destination,
         [parameter()] [switch] $Force
     )
     
@@ -625,37 +634,52 @@ function MoveFile {
     }
     
     process {
+        
+        $Files = Get-ChildItem -Path $Path -File
 
-        Get-ChildItem -Path $Path  | ForEach-Object{
+        foreach ($File in $Files) {
+            
+            $destinationPath = $destination | Join-Path -ChildPath $File.Name
 
-            $destinationPath = Join-Path -Path  $destination -ChildPath $_.Name
+            if (!(Test-Path -Path $destinationPath)) {
 
-            if (Test-Path -Path $destinationPath) {
+                $File | Move-Item -Destination $destinationPath
+                $Status = "MOVED"
+            } 
+            else 
+            {
                 #File Exists
-                $hashSource = Get-FileHash -Path $_
+                $hashSource = Get-FileHash -Path $File
                 $hashDestination = Get-FileHash -Path $destinationPath
 
                 if ($hashSource.Hash -eq $hashDestination.Hash) {
                     #Files are equal
                     if ($Force) {
-                        Remove-Item -Path $_
+                        if ($PSCmdlet.ShouldProcess("File.Name", "Operation")) {
+                            
+                        }
+                        Remove-Item -Path $File
+                        $status = "ARE_EQUAL_REMOVED_SOURCE"
                     }
                     else {
-                        throw FILES_ARE_EQUAL
+                        $status = "ARE_EQUAL"
                     }
                 }
                 else {
                     if ($Force) {
-                        $_ | Move-Item -Destination $destinationPath -Force
+                        $newFilename = GetFileCopyName($File)
+                        $newDestination = $Destination | Join-Path -ChildPath $newFilename
+                        $File | Copy-Item -Destination $newDestination
+                        $File | Remove-Item
+                        $status = "ARE_NOT_EQUAL_RENAME_SOURCE"
                     }
-                    else{
-                        throw FILES_ARE_NOT_EQUAL
+                    else {
+                        $status = "ARE_NOT_EQUAL"
                     }
                 }
             }
-            else {
-                $_ | Move-Item -Destination $destinationPath
-            }
+
+            $Status
         }
     }
 
@@ -664,3 +688,17 @@ function MoveFile {
     }
 }
 
+function GetFileCopyName([string] $Path)
+{
+    $file = $Path | Get-Item 
+    $nameBase = $file.Name
+    $targetFullname = $file.FullName
+    $count = 0
+    while (Test-Path -Path $targetFullname){
+        $count++
+        $nameBase =  $File.BaseName + "($count)" + $File.Extension
+        $targetFullname = Join-Path -Path $file.Directory -ChildPath $nameBase
+    }
+
+    return $nameBase
+}

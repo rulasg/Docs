@@ -521,6 +521,114 @@ function DocsTest_MoveFile {
 
 } 
 
+function DocsTest_MoveFile_Path {
+    
+    $e = SetupScenario2
+
+    Assert-ItemExist     -Path     $e["filename1"]
+
+    $result = Move-DocsFile -Path $e["filename1"]
+
+    Assert-ItemNotExist  -Path     $e["filename1"]
+    
+    Assert-Count         -Expected 1                    -Presented $result
+    Assert-AreEqual      -Expected "Test1"              -Presented $result[0].Owner; 
+    Assert-AreEqualPath  -Expected $e["filename1"]      -Presented $result[0].Name; 
+    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[0].Status
+    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $result[0].Destination; 
+    Assert-ItemExist     -Path     $e["FileFullName1"]
+    
+}
+
+function DocsTest_MoveFile_Path_WhatIf {
+    
+    $e = SetupScenario2
+
+    Assert-ItemExist     -Path     $e["filename1"]
+
+    $result = Move-DocsFile -Path $e["filename1"] -WhatIf
+
+    
+    Assert-ItemExist     -Path     $e["filename1"]
+    
+    Assert-Count         -Expected 1                    -Presented $result
+    Assert-AreEqual      -Expected "Test1"              -Presented $result[0].Owner; 
+    Assert-AreEqualPath  -Expected $e["filename1"]      -Presented $result[0].Name; 
+    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[0].Status
+    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $result[0].Destination; 
+    Assert-ItemNotExist  -Path     $e["FileFullName1"]
+    
+}
+
+function DocsTest_MoveFile_Path_Exists {
+    
+    $e = SetupScenario2
+
+    Copy-Item -Path $e["filename1"] -Destination $e["FileFullName1"]
+    Assert-FilesAreEqual -Expected  $e["filename1"] -Presented $e["FileFullName1"]
+
+    "Some diferent text" | Out-File -FilePath $e["FileFullName2"]
+    Assert-FilesAreNotEqual -Expected  $e["filename2"] -Presented $e["FileFullName2"]
+
+    $result = ($e["filename1"] ,$e["filename2"]) | Move-DocsFile  
+    
+    Assert-Count         -Expected 2                     -Presented $result
+
+    Assert-AreEqual      -Expected "Test1"               -Presented $result[0].Owner; 
+    Assert-AreEqualPath  -Expected $e["filename1"]       -Presented $result[0].Name; 
+    Assert-AreEqualPath  -Expected "ARE_EQUAL" -Presented $result[0].Status
+    Assert-AreEqualPath  -Expected $e["storefolder1"]    -Presented $result[0].Destination; 
+    Assert-ItemExist     -Path     $e["FileFullName1"]
+    
+    Assert-AreEqual      -Expected "Test2"               -Presented $result[1].Owner; 
+    Assert-AreEqualPath  -Expected $e["filename2"]       -Presented $result[1].Name; 
+    Assert-AreEqualPath  -Expected "ARE_NOT_EQUAL" -Presented $result[1].Status
+    Assert-AreEqualPath  -Expected $e["storefolder2"]    -Presented $result[1].Destination; 
+    Assert-ItemExist     -Path     $e["FileFullName2"]
+
+}
+
+function DocsTest_MoveFile_Path_Exists_ARE_EQUAL_Force {
+    
+    $e = SetupScenario2
+
+    Copy-Item -Path $e["filename1"] -Destination $e["FileFullName1"]
+    Assert-FilesAreEqual -Expected  $e["filename1"] -Presented $e["FileFullName1"]
+
+    $result = $e["filename1"] | Move-DocsFile  -Force
+    
+    Assert-Count         -Expected 1                     -Presented $result
+    
+    Assert-AreEqual      -Expected "Test1"               -Presented $result[0].Owner; 
+    Assert-AreEqualPath  -Expected $e["filename1"]       -Presented $result[0].Name; 
+    Assert-AreEqualPath  -Expected "ARE_EQUAL_REMOVED_SOURCE"     -Presented $result[0].Status
+    Assert-AreEqualPath  -Expected $e["storefolder1"]    -Presented $result[0].Destination; 
+    Assert-ItemExist     -Path $e["FileFullName1"]
+    Assert-ItemNotExist  -Path $e["filename1"]
+
+}
+
+function DocsTest_MoveFile_Path_Exists_ARE_NOT_EQUAL_Force {
+    
+    $e = SetupScenario2
+
+    
+    "Some diferent text" | Out-File -FilePath $e["FileFullName2"]
+    Assert-FilesAreNotEqual -Expected  $e["filename2"] -Presented $e["FileFullName2"]
+
+    $result = $e["filename2"] | Move-DocsFile  -Force
+
+    Assert-Count         -Expected 1                     -Presented $result
+
+    Assert-AreEqual      -Expected "Test2"               -Presented $result[0].Owner; 
+    Assert-AreEqualPath  -Expected $e["filename2"]       -Presented $result[0].Name; 
+    Assert-AreEqualPath  -Expected "ARE_NOT_EQUAL_RENAME_SOURCE" -Presented $result[0].Status
+    Assert-AreEqualPath  -Expected $e["storefolder2"]    -Presented $result[0].Destination; 
+    Assert-ItemExist     -Path $e["FileFullName2"]
+    Assert-ItemExist     -Path ($e["FileFullName2"] -replace ".test1", "(1).test1")
+    Assert-ItemNotExist  -Path $e["filename2"]
+}
+
 Export-ModuleMember -Function DocsTest_*
 
 function SetupScenario1 () {
