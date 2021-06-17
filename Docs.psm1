@@ -318,22 +318,22 @@ function Set-StoreLocation{
 function Get-Owners {
     [CmdletBinding()]
     param (
-        
     )
+    $script:StoresList.Keys
     
-    Get-Stores | ForEach-Object {
+    # Get-Stores | ForEach-Object {
 
-        $v = $_
-        $o = New-Object -TypeName psobject
+    #     $v = $_
+    #     $o = New-Object -TypeName psobject
 
-        $o | Add-Member -MemberType NoteProperty -Name Owner -Value $v.Owner
-        $o | Add-Member -MemberType NoteProperty -Name Path -Value $v.Path
-        $o | Add-Member -MemberType NoteProperty -Name IsRecursive -Value $v.IsRecursive
+    #     $o | Add-Member -MemberType NoteProperty -Name Owner -Value $v.Owner
+    #     $o | Add-Member -MemberType NoteProperty -Name Path -Value $v.Path
+    #     $o | Add-Member -MemberType NoteProperty -Name IsRecursive -Value $v.IsRecursive
 
-        $o | Add-Member -MemberType NoteProperty -Name Exist -Value (Test-Path -Path $v.Path)
+    #     $o | Add-Member -MemberType NoteProperty -Name Exist -Value (Test-Path -Path $v.Path)
 
-        $o
-    }
+    #     $o
+    # }
 } Export-ModuleMember -Function Get-Owners
 
 # Files

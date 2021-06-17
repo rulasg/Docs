@@ -171,15 +171,18 @@ function DocsTest_GetOwners {
 
     Assert-Count -Expected 2 -Presented $result
 
-    $o1 = $result[0]
-    Assert-IsTrue -Condition $o1.IsRecursive
-    Assert-AreEqualPath -Expected "." -Presented $o1.Path
-    Assert-IsTrue -Condition $o1.Exist
+    Assert-AreEqual -Expected "SampleOwner" -Presented $result[0]
+    Assert-AreEqual -Expected "SampleOwner2" -Presented $result[1]
 
-    $o2 = $result[1]
-    Assert-IsFalse -Condition $o2.IsRecursive
-    Assert-AreEqualPath -Expected "$Home/fackefolder" -Presented $o2.Path
-    Assert-IsFalse -Condition $o2.Exist
+    # $o1 = $result[0]
+    # Assert-IsTrue -Condition $o1.IsRecursive
+    # Assert-AreEqualPath -Expected "." -Presented $o1.Path
+    # Assert-IsTrue -Condition $o1.Exist
+
+    # $o2 = $result[1]
+    # Assert-IsFalse -Condition $o2.IsRecursive
+    # Assert-AreEqualPath -Expected "$Home/fackefolder" -Presented $o2.Path
+    # Assert-IsFalse -Condition $o2.Exist
 
 }
 
