@@ -89,7 +89,7 @@ class DocName {
 
         $pattern = "$d$o$ta$am$w$des.$t"
 
-        Write-Verbose -Message $pattern
+        "[DocName]::Pattern - {0}" -f $pattern | Write-Verbose 
 
         return $pattern
     }
@@ -297,6 +297,24 @@ function Get-Stores {
 
 } Export-ModuleMember -Function Get-Stores
 
+function Set-StoreLocation{
+    [CmdletBinding()]
+
+    param (
+        [parameter(Mandatory,Position=1,ValueFromPipeline)][string] $Owner
+    )
+    $location = Get-Stores -Owner $Owner
+
+    if (!$location) {
+        "Owner unknown" | Write-Error
+    } elseif (!$location.Exist) {
+        "Locations does not exist" | Write-Error
+    } else{
+        $location | Set-Location 
+        Get-ChildItem
+    }
+} Export-ModuleMember -Function Set-StoreLocation
+
 function Get-Owners {
     [CmdletBinding()]
     param (
@@ -472,31 +490,6 @@ function Find-File {
     
 } Export-ModuleMember -Function Find-File
 
-# function Test-FileName {
-#     [CmdletBinding()]
-#     Param(
-#         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
-#         [Alias("PSPath")][ValidateNotNullOrEmpty()]
-#         [string[]] $Path
-#     )
-#     begin{
-
-#         $basepattern = Get-FileNamePattern
-#     }
-#     process{
-
-#         # Exists and is not a director/folder
-#         if (!(Test-Path -Path $Path )) { 
-#             return $false }
-#         if (Test-Path -Path $Path -PathType Container) {
-#             return $false}
-
-#         $file = Get-Item -Path $Path
-
-#         return $file.Name -Like $basepattern
-#     }
-# } Export-ModuleMember -Function Test-FileName
-
 function Get-FileToMove {
     [CmdletBinding()]
     Param(
@@ -533,6 +526,10 @@ function Get-FileToMove {
         # file name format
         $files = Get-ChildItem -Path $Path -Filter $Pattern -Recurse:$Recurse
 
+        if ($VerbosePreference) {
+            $all = Get-ChildItem -Path $Path -Recurse:$Recurse
+        }
+
         foreach ($file in $files) {
             if (Test-FileName -Path $file) {
                 # Add to ret
@@ -542,6 +539,7 @@ function Get-FileToMove {
     }
     
     end {
+        "FilesToMove - Found [{0}] Valid [{1}]" -f $all.Length,$retFiles.Length | Write-Verbose
         return $retFiles
     }
 } Export-ModuleMember -Function Get-FileToMove

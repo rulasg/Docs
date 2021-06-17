@@ -136,6 +136,30 @@ function DocsTest_GetStores {
 
 }
 
+function DocsTest_SetStoreLocation{
+
+    $storefolder1 = "." | Join-Path -ChildPath "Fakefolder1" -AdditionalChildPath "FakeStoreFolder1"
+    $storefolder2 = "." | Join-Path -ChildPath "Fakefolder2" -AdditionalChildPath "FakeStoreFolder2"
+
+    ResetDocsList
+    Add-DocsStore -Owner test1 -Path $storefolder1 -Force
+    Add-DocsStore -Owner test2 -Path $storefolder2 -Force
+
+    $converted1 = $storefolder1 | Convert-Path
+    $converted2 = $storefolder2 | Convert-Path
+
+    Set-DocsStoreLocation -Owner test1
+
+    Assert-AreEqualPath -Expected $converted1  -Presented '.'
+    
+    "test2" | Set-DocsStoreLocation 
+
+    Assert-AreEqualPath -Expected $converted2 -Presented '.'
+
+    Set-DocsStoreLocation test1
+
+    Assert-AreEqualPath -Expected $converted1  -Presented '.'
+}
 function DocsTest_GetOwners {
     
     ResetDocsList
@@ -346,7 +370,7 @@ function DocsTest_GetFileToMove_All{
     "This content is fake" | Out-File -FilePath "122012-Test1.txt"
     "This content is fake" | Out-File -FilePath "122012-OtherOwner-Description.txt"
 
-    $result = Get-DocsFileToMove
+    $result = Get-DocsFileToMove -Verbose
 
     Assert-Count -Expected 6 -Presented $result
     Assert-AreEqual -Expected $FileName1.Name() -Presented $result[0].Name
