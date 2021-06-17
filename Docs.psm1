@@ -218,21 +218,24 @@ function New-Store {
         [Parameter(ValueFromPipelineByPropertyName)][switch] $IsRecursive
     )
     $o = New-Object -TypeName DocsStore
+    
     $o.Owner = $Owner
-    if ($Path | Test-Path) {
-        $o.Path = $Path | Convert-Path 
-    }
-    else {
-        if ([System.IO.Path]::IsPathRooted($Path)) {
-            $o.Path = $Path
-        }
-        else {
-            Write-Error ("Path has to be rooted if it does not exit [{0}]" -F $Path)
-            return
-        }
-    }
-    $o.Path = [System.IO.Path]::IsPathRooted($Path) ? $Path : (Resolve-Path -Path $Path).Path
     $o.IsRecursive = $IsRecursive
+    $o.Path = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
+    
+    # if ($Path | Test-Path) {
+    #     $o.Path = $Path | Convert-Path 
+    # }
+    # else {
+    #     if ([System.IO.Path]::IsPathRooted($Path)) {
+    #         $o.Path = $Path
+    #     }
+    #     else {
+    #         Write-Error ("Path has to be rooted if it does not exit [{0}]" -F $Path)
+    #         return
+    #     }
+    # }
+    # $o.Path = [System.IO.Path]::IsPathRooted($Path) ? $Path : (Resolve-Path -Path $Path).Path
 
     $o.Exist = Test-Path -Path $o.Path
 
@@ -461,7 +464,7 @@ function Find-File {
         -Type $Type 
 
     foreach ($store in $(Get-Stores -Exist)) {
-            
+        "Searching on {0}..." -f $store.Path | Write-Verbose
         $retFiles += Get-ChildItem -Path $store.Path -Filter $Pattern -Recurse:$store.IsRecursive
     }
 
@@ -578,71 +581,77 @@ function Move-File {
             -Type $Type 
 
         foreach ($file in $files) {
+            
             # Get Owner from file
             $owner = ([DocName]::ConvertToDocName($file.Name)).Owner
 
-            # Get Store by owner
-            $store = Get-Stores -Owner $Owner
-            if ($store.Count -ne 1) {
-                Continue
-            } 
-            $destination = $Store.Path 
             
             # Move file to Store
 
             try {
-                $destinationPath = $destination | Join-Path -ChildPath $File.Name
-                
-                if (!(Test-Path -Path $destinationPath)) {
-                    
-                    $File | Move-Item -Destination $destinationPath -Confirm:$false
-                    $Status = "MOVED"
+
+                # Get Store by owner
+                $store = Get-Stores -Owner $Owner
+                if ($store.Count -ne 1) {
+                    $status = ($store.Count -eq 0 ? "Unknown" : "Unclear")
+                    $destination = [string]::Empty
+                    "{0} store {1} ..." -f $file.Name,$status | Write-Verbose
                 } 
-                else {
-                    #File Exists
-
-                    $hashSource = Get-FileHash -Path $File
-                    $hashDestination = Get-FileHash -Path $destinationPath
-
-                    if ($hashSource.Hash -eq $hashDestination.Hash) {
-                        #Files are equal                    
-                        if ($PSCmdlet.ShouldProcess("$File.Name", "Equal. Leave source ") -and !$Force) {
-                            $status = "ARE_EQUAL"
+                else{
+                    
+                    $destination = $Store.Path 
+        
+                    $destinationPath = $destination | Join-Path -ChildPath $File.Name
+                    
+                    if (!(Test-Path -Path $destinationPath)) {
+                        
+                        $File | Move-Item -Destination $destinationPath -Confirm:$false
+                        $Status = "MOVED"
+                    } 
+                    else {
+                        #File Exists
+        
+                        $hashSource = Get-FileHash -Path $File
+                        $hashDestination = Get-FileHash -Path $destinationPath
+        
+                        if ($hashSource.Hash -eq $hashDestination.Hash) {
+                            #Files are equal                    
+                            if ($PSCmdlet.ShouldProcess("$File.Name", "Equal. Leave source ") -and !$Force) {
+                                $status = "ARE_EQUAL"
+                            }
+                            else {
+                                Remove-Item -Path $File
+                                $status = "ARE_EQUAL_REMOVED_SOURCE"
+                            }
                         }
                         else {
-                            Remove-Item -Path $File
-                            $status = "ARE_EQUAL_REMOVED_SOURCE"
-                        }
-                    }
-                    else {
-                        
-                        if ($PSCmdlet.ShouldProcess("$File.Name", "Not Equal. Do not copy") -and !$Force) {
-                            $status = "ARE_NOT_EQUAL"
-                        } else {
-                            $newFilename = GetFileCopyName($File)
-                            $newDestination = $Destination | Join-Path -ChildPath $newFilename
-                            $File | Copy-Item -Destination $newDestination
-                            $File | Remove-Item
-                            $status = "ARE_NOT_EQUAL_RENAME_SOURCE"
+                            
+                            if ($PSCmdlet.ShouldProcess("$File.Name", "Not Equal. Do not copy") -and !$Force) {
+                                $status = "ARE_NOT_EQUAL"
+                            } else {
+                                $newFilename = GetFileCopyName($File)
+                                $newDestination = $Destination | Join-Path -ChildPath $newFilename
+                                $File | Copy-Item -Destination $newDestination
+                                $File | Remove-Item
+                                $status = "ARE_NOT_EQUAL_RENAME_SOURCE"
+                            }
                         }
                     }
                 }
-
             }
             catch {
                 $Status = $_.Exception.Message
             }
             
-
-            # Build move reference and yeld
-            $o = New-Object -TypeName psobject
-            $o | Add-Member -NotePropertyName "Owner" -NotePropertyValue $Owner
-            $o | Add-Member -NotePropertyName "Status" -NotePropertyValue $Status
-            $o | Add-Member -NotePropertyName "Name" -NotePropertyValue $File.Name
-            $o | Add-Member -NotePropertyName "FullName" -NotePropertyValue $File.FullName
-            $o | Add-Member -NotePropertyName "Destination" -NotePropertyValue $store.Path
+            # Build move reference and yield
+            $retObject = New-Object -TypeName psobject
+            $retObject | Add-Member -NotePropertyName "FullName" -NotePropertyValue $File.FullName
+            $retObject | Add-Member -NotePropertyName "Name" -NotePropertyValue $File.Name
+            $retObject | Add-Member -NotePropertyName "Owner" -NotePropertyValue $Owner
+            $retObject | Add-Member -NotePropertyName "Destination" -NotePropertyValue $destination
+            $retObject | Add-Member -NotePropertyName "Status" -NotePropertyValue $Status
             
-            $o
+            $retObject
         }
     }
 

@@ -488,7 +488,7 @@ function DocsTest_MoveFile {
 
     $result = Move-DocsFile 
 
-    Assert-Count -Expected 4 -Presented $result
+    Assert-Count -Expected 6 -Presented $result
 
     Assert-ItemNotExist     -Path     $e["filename1"]
     Assert-ItemNotExist     -Path     $e["filename2"]
@@ -518,6 +518,18 @@ function DocsTest_MoveFile {
     Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[3].Status 
     Assert-AreEqualPath  -Expected $e["storefolder2"]   -Presented $result[3].Destination; 
     Assert-ItemExist     -Path     $e["FileFullName23"]
+
+    Assert-AreEqual      -Expected "OtherOwner"         -Presented $result[4].Owner; 
+    Assert-AreEqualPath  -Expected $e["FileNameLocal_OtherOWner1"] -Presented $result[4].Name;
+    Assert-AreEqualPath  -Expected "Unknown"            -Presented $result[4].Status 
+    Assert-AreEqualPath  -Expected ""                   -Presented $result[4].Destination; 
+    Assert-ItemExist     -Path     $e["FileNameLocal_OtherOWner1"]
+
+    Assert-AreEqual      -Expected "OtherOwner"         -Presented $result[5].Owner; 
+    Assert-AreEqualPath  -Expected $e["FileNameLocal_OtherOWner2"] -Presented $result[5].Name;
+    Assert-AreEqualPath  -Expected "Unknown"            -Presented $result[5].Status 
+    Assert-AreEqualPath  -Expected ""                   -Presented $result[5].Destination; 
+    Assert-ItemExist     -Path     $e["FileNameLocal_OtherOWner2"]
 
 } 
 

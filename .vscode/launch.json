@@ -5,6 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "PowerShell Interactive Session",
+            "type": "PowerShell",
+            "request": "launch",
+            "cwd": ""
+        },
+
+        {
             "name": "PowerShell: docstest.ps1",
             "type": "PowerShell",
             "request": "launch",
