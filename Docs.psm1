@@ -667,23 +667,13 @@ function Rename-File {
     process {
 
         #Path 
-        $files = Get-File              `
-            -Path $Path                `
-            -Pattern $Pattern          `
-            -Date $Date                `
-            -Owner $Owner              `
-            -Target $Target            `
-            -Amount $Amount            `
-            -What $What                `
-            -Description $Description  `
-            -Type $Type 
-
+        $files = Get-File -Path $Path                
 
         foreach ($File in $Files) {
             
-            $DocFile = $File | ConvertTo-DocsDocName
+            $docName = $File | ConvertTo-DocsDocName
             $NewDocFile = New-DocName      `
-                -Path $File                `
+                -DocName $docName          `
                 -Date $Date                `
                 -Owner $Owner              `
                 -Target $Target            `
@@ -693,18 +683,17 @@ function Rename-File {
                 -Type $Type 
 
             $newFileName = $NewDocFile.Name()
-            $fileName = $DocFil.Name()
+            $fileName = $docName.Name()
             
-            if ($fileName.Name() -ne $newFileName) {
+            if ($fileName -ne $newFileName) {
                 "{0} -> {1}" -f $fileName,$newFileName | Write-Verbose
 
                 if ($PSCmdlet.ShouldProcess($File.Name, "Renamed")) {
-                    Rename-Item -Path $File -NewName $newFileName -$PassThru 
-                } elseif ($WhatIfPreference) {
-                    $DocFile.Name()
+                    $File | Rename-Item -NewName $newFileName 
                 }
-            } else {
-                "{0} = {1}" -f $fileName,$newFileName | Write-Verbose
+            } 
+            else {
+                "{0} =={1}" -f $fileName,$newFileName | Write-Verbose
             }
         }
     }
