@@ -334,24 +334,24 @@ function DocsTest_Find_MultiFolder {
 
 }
 
-function DocsTest_TestFileName{
+function DocsTest_TestFile{
 
     # Not exist
-    $result = Test-DocsFileName -Path "fakefile.txt"
+    $result = Test-DocsFile -Path "fakefile.txt"
     Assert-IsFalse -Condition $result
 
     # Is a directory
     $filename1  = Get-DocsFileName -Owner Test1 -Target Testing1 -Description "Test0 File1"  -Type test1 -Date 100101
     $null = New-Item -ItemType Directory -Name $filename1.Name()
     
-    $result = Test-DocsFileName -Path $filename1.Name()
+    $result = Test-DocsFile -Path $filename1.Name()
     Assert-IsFalse -Condition $result
     
     # File
     $filename2  = Get-DocsFileName -Owner Test2 -Target Testing2 -Description "Test0 File2"  -Type test2 -Date 100102
     "This content is fake" | Out-File -FilePath $FileName2.Name()
 
-    $result = Test-DocsFileName -Path $filename2.Name()
+    $result = Test-DocsFile -Path $filename2.Name()
 
     Assert-IsTrue -Condition $result
 }

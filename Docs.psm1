@@ -430,33 +430,54 @@ function Get-FileName {
 } Export-ModuleMember -Function Get-FileName
 
 
-function Test-FileName {
+function Test-File {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
-        [string] $Path
+        [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Alias("PSPath")]
+        [string[]] $Path
     )
     process {
 
-        # Does not exist or is a folder
-        if ((!($Path | Test-Path)) -or ($Path | Test-Path -PathType Container)) {
+        if (!$Path) { $Path = "." }
+
+        $Pattern = Get-FileNamePattern
+
+        # file name format
+        $files = Get-ChildItem -Path $Path -Filter $Pattern -Recurse:$Recurse
+
+        if ($files.Length -eq 0) {
             return $false
         }
 
-        $file = $Path | Get-Item
+        foreach ($file in $files) {
+   
+            # Does not exist or is a folder
+            if ( $file | Test-Path -PathType Container) {
+                $ret = $false
+            } else {
+                $ret = $file.Name | Test-FileName
+            }
+            $ret
+        }
+    }
+} Export-ModuleMember -Function Test-File
 
-        $fileName = $file | Split-Path -Leaf
-        $doc = [DocName]::ConvertToDocName($fileName)   
+function Test-FileName{
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Alias("Name")]
+        [string] $FileName
+    )
+
+    process{
+        $doc = [DocName]::ConvertToDocName($FileName)   
         $isValid = ($null -eq $doc) ?  $false : $doc.IsValid()
 
-        if (!$isValid) {
-            return $false
-        }
-        
-        return $true
+        $isValid
     }
-} Export-ModuleMember -Function Test-FileName
-
+}Export-ModuleMember -Function Test-FileName
 
 function ConvertTo-DocName {
     [CmdletBinding()]
@@ -558,7 +579,7 @@ function Get-FileToMove {
         }
 
         foreach ($file in $files) {
-            if (Test-FileName -Path $file) {
+            if (Test-File -Path $file) {
                 # Add to ret
                 $retFiles += $file
             }
@@ -612,7 +633,7 @@ function Get-File {
         }
 
         foreach ($file in $files) {
-            if (Test-FileName -Path $file) {
+            if (Test-File -Path $file) {
                 # Add to ret
                 $retFiles += $file
             }
