@@ -337,7 +337,8 @@ function DocsTest_Find_MultiFolder {
 function DocsTest_TestFileName{
 
     # Not exist
-    Assert-IsFalse -Condition (Test-DocsFileName -Path "fakefile.txt")
+    $result = Test-DocsFileName -Path "fakefile.txt"
+    Assert-IsFalse -Condition $result
 
     # Is a directory
     $filename1  = Get-DocsFileName -Owner Test1 -Target Testing1 -Description "Test0 File1"  -Type test1 -Date 100101
@@ -353,6 +354,25 @@ function DocsTest_TestFileName{
     $result = Test-DocsFileName -Path $filename2.Name()
 
     Assert-IsTrue -Condition $result
+}
+
+function DocsTest_TestFileName_FileFormats {
+    
+    Assert-IsTrue -Condition ("121212-owner-descr"    | Test-DocsFileName)
+    Assert-IsTrue -Condition ("121212-owner-Desc.txt" | Test-DocsFileName)
+    Assert-IsTrue -Condition ("121212-owner-target-Desc.txt" | Test-DocsFileName)
+    Assert-IsTrue -Condition ("121212-owner-target-32#32-Desc.txt" | Test-DocsFileName)
+    Assert-IsTrue -Condition ("121212-owner-target-What-Desc.txt" | Test-DocsFileName)
+    Assert-IsTrue -Condition ("121212-owner-target-32#32-What-Desc.txt" | Test-DocsFileName)
+    Assert-IsTrue -Condition ("121212-owner-target-32#32-What-Desc-dasd-asdasd-asddas.txt" | Test-DocsFileName)
+    
+    Assert-IsFalse -Condition ("something"    | Test-DocsFileName)
+    Assert-IsFalse -Condition ("121212-NoOwner.txt"    | Test-DocsFileName)
+    Assert-IsFalse -Condition ("121212-NoOwner"    | Test-DocsFileName)
+    Assert-IsFalse -Condition ("Owner-Descdescr.txt"    | Test-DocsFileName)
+    Assert-IsFalse -Condition ("12121a-owner-descr.txt"    | Test-DocsFileName)
+    Assert-IsFalse -Condition ("121212-owner-target-Ammount-What-Desc-dasd-asdasd-asddas.txt" | Test-DocsFileName)
+    
 }
 
 function DocsTest_GetFileToMove_All{
@@ -373,7 +393,7 @@ function DocsTest_GetFileToMove_All{
     "This content is fake" | Out-File -FilePath "122012-Test1.txt"
     "This content is fake" | Out-File -FilePath "122012-OtherOwner-Description.txt"
 
-    $result = Get-DocsFileToMove -Verbose
+    $result = Get-DocsFileToMove 
 
     Assert-Count -Expected 6 -Presented $result
     Assert-AreEqual -Expected $FileName1.Name() -Presented $result[0].Name
@@ -485,24 +505,7 @@ function DocsTest_GetFileToMove_SpecificPath{
     Assert-AreEqualPath -Expected $localfile.Name() -Presented $result[2].FullName
 }
 
-function DocsTest_TestFileName {
-    
-    Assert-IsTrue -Condition ("121212-owner-descr"    | Test-DocsFileName)
-    Assert-IsTrue -Condition ("121212-owner-Desc.txt" | Test-DocsFileName)
-    Assert-IsTrue -Condition ("121212-owner-target-Desc.txt" | Test-DocsFileName)
-    Assert-IsTrue -Condition ("121212-owner-target-32#32-Desc.txt" | Test-DocsFileName)
-    Assert-IsTrue -Condition ("121212-owner-target-What-Desc.txt" | Test-DocsFileName)
-    Assert-IsTrue -Condition ("121212-owner-target-32#32-What-Desc.txt" | Test-DocsFileName)
-    Assert-IsTrue -Condition ("121212-owner-target-32#32-What-Desc-dasd-asdasd-asddas.txt" | Test-DocsFileName)
-    
-    Assert-IsFalse -Condition ("something"    | Test-DocsFileName)
-    Assert-IsFalse -Condition ("121212-NoOwner.txt"    | Test-DocsFileName)
-    Assert-IsFalse -Condition ("121212-NoOwner"    | Test-DocsFileName)
-    Assert-IsFalse -Condition ("Owner-Descdescr.txt"    | Test-DocsFileName)
-    Assert-IsFalse -Condition ("12121a-owner-descr.txt"    | Test-DocsFileName)
-    Assert-IsFalse -Condition ("121212-owner-target-Ammount-What-Desc-dasd-asdasd-asddas.txt" | Test-DocsFileName)
-    
-}
+
 
 function DocsTest_MoveFile {
     
@@ -666,6 +669,30 @@ function DocsTest_MoveFile_Path_Exists_ARE_NOT_EQUAL_Force {
     Assert-ItemExist     -Path $e["FileFullName2"]
     Assert-ItemExist     -Path ($e["FileFullName2"] -replace ".test1", "(1).test1")
     Assert-ItemNotExist  -Path $e["filename2"]
+}
+
+function DocsTest_ConvertToDocName{
+
+    #SetupScenario2
+    #Get-DocNamePattern -Owner test2 | Get-Item | Convertto-docsdocName
+
+    $result = ConvertTo-DocsDocName -Path "121212-owner-target-32#32-What-Desc-dasd-asdasd-asddas.txt"  
+    Assert-AreEqual -Expected "121212" -Presented $result.Date
+    Assert-AreEqual -Expected "owner" -Presented $result.Owner
+    Assert-AreEqual -Expected "target" -Presented $result.Target
+    Assert-AreEqual -Expected "32#32" -Presented $result.Amount
+    Assert-AreEqual -Expected "What" -Presented $result.What
+    Assert-AreEqual -Expected "Desc-dasd-asdasd-asddas" -Presented $result.Description
+
+}
+
+function DocsTest_RenameFile{
+
+    $e = SetupScenario2
+
+    # Rename-DocsFile 
+
+    Assert-NotImplemented
 }
 
 Export-ModuleMember -Function DocsTest_*

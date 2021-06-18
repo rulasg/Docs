@@ -338,9 +338,10 @@ function Get-Owners {
 
 # Files
 
-function NewDocName {
+function New-DocName {
     [CmdletBinding()]
     Param(
+        [Parameter(ValueFromPipeline)][DocName] $DocName,
         [string]$Date,
         [string]$Owner,
         [string]$Target,
@@ -352,16 +353,25 @@ function NewDocName {
 
     $dn = New-Object -TypeName DocName
 
-    $dn.Date = $Date
-    $dn.Owner = $Owner
-    $dn.Target = $Target
-    $dn.Amount = $Amount
-    $dn.What = $What
-    $dn.Description = $Description
-    $dn.Type = $Type
+    $dn.Date        = ($Date)        ? $Date        : $DocName.Date
+    $dn.Owner       = ($Owner)       ? $Owner       : $DocName.Owner
+    $dn.Target      = ($Target)      ? $Target      : $DocName.Target
+    $dn.Amount      = ($Amount)      ? $Amount      : $DocName.Amount
+    $dn.What        = ($What)        ? $What        : $DocName.What
+    $dn.Description = ($Description) ? $Description : $DocName.Description
+    $dn.Type        = ($Type)        ? $Type        : $DocName.Type
+
+    # $dn.Date = $Date
+    # $dn.Owner = $Owner
+    # $dn.Target = $Target
+    # $dn.Amount = $Amount
+    # $dn.What = $What
+    # $dn.Description = $Description
+    # $dn.Type = $Type
 
     return $dn
 }
+
 function Get-FileNamePattern {
     [CmdletBinding()]
     Param(
@@ -379,7 +389,7 @@ function Get-FileNamePattern {
         return $Pattern
     }
 
-    $dn = NewDocName               `
+    $dn = New-DocName               `
         -Date $Date                `
         -Owner $Owner              `
         -Target $Target            `
@@ -394,44 +404,59 @@ function Get-FileNamePattern {
 function Get-FileName {
     [CmdletBinding()]
     Param(
-        [string]$Date,
-        [string]$Owner,
-        [string]$Target,
-        [string]$Amount,
-        [string]$What,
-        [Parameter(Mandatory)][string]$Description,
-        [string]$Type
+        [Parameter(ValueFromPipelineByPropertyName)][string]$Date,
+        [Parameter(ValueFromPipelineByPropertyName)][string]$Owner,
+        [Parameter(ValueFromPipelineByPropertyName)][string]$Target,
+        [Parameter(ValueFromPipelineByPropertyName)][string]$Amount,
+        [Parameter(ValueFromPipelineByPropertyName)][string]$What,
+        [Parameter(ValueFromPipelineByPropertyName, Mandatory)][string]$Description,
+        [Parameter(ValueFromPipelineByPropertyName)][string]$Type
     )
 
-    $dn = NewDocName               `
-        -Date $Date                `
-        -Owner $Owner              `
-        -Target $Target            `
-        -Amount $Amount            `
-        -What $What                `
-        -Description $Description  `
-        -Type $Type                
+    process{
 
-    return $dn
+        $dn = New-DocName               `
+            -Date $Date                `
+            -Owner $Owner              `
+            -Target $Target            `
+            -Amount $Amount            `
+            -What $What                `
+            -Description $Description  `
+            -Type $Type                
+    
+        $dn
+    }
     
 } Export-ModuleMember -Function Get-FileName
+
 
 function Test-FileName {
     [CmdletBinding()]
     param(
-        [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
-        [Alias("PSPath")][ValidateNotNullOrEmpty()]
-        [string[]] $Path
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [string] $Path
     )
     process {
 
-        $fileName = $Path | Split-Path -Leaf
+        # Does not exist or is a folder
+        if ((!($Path | Test-Path)) -or ($Path | Test-Path -PathType Container)) {
+            return $false
+        }
 
-        $doc = [DocName]::ConvertToDocName($fileName)
+        $file = $Path | Get-Item
+
+        $fileName = $file | Split-Path -Leaf
+        $doc = [DocName]::ConvertToDocName($fileName)   
+        $isValid = ($null -eq $doc) ?  $false : $doc.IsValid()
+
+        if (!$isValid) {
+            return $false
+        }
         
-        return ($null -eq $doc) ?  $false : $doc.IsValid()
+        return $true
     }
 } Export-ModuleMember -Function Test-FileName
+
 
 function ConvertTo-DocName {
     [CmdletBinding()]
@@ -446,13 +471,15 @@ function ConvertTo-DocName {
     }
     
     process {
-        
+        $filenName = $Path | Split-Path -Leaf
+        [DocName]::ConvertToDocName($filenName)
     }
     
     end {
         
     }
-}
+} Export-ModuleMember -Function ConvertTo-DocName
+
 function Find-File {
     [CmdletBinding()]
     Param(
@@ -543,6 +570,127 @@ function Get-FileToMove {
         return $retFiles
     }
 } Export-ModuleMember -Function Get-FileToMove
+
+function Get-File {
+    [CmdletBinding()]
+    Param(
+        [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Alias("PSPath")]
+        [string[]] $Path,
+        [parameter()][string]$Pattern,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Description,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Date,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Target,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
+        [parameter(ValueFromPipelineByPropertyName)][string]$What,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Type,
+        [parameter()][switch] $Recurse
+    )
+    begin {
+        $retFiles = @()
+    }
+    
+    process {
+        if (!$Path) { $Path = "." }
+
+        $Pattern = Get-FileNamePattern `
+            -Pattern $Pattern          `
+            -Date $Date                `
+            -Owner $Owner              `
+            -Target $Target            `
+            -Amount $Amount            `
+            -What $What                `
+            -Description $Description  `
+            -Type $Type 
+
+        # file name format
+        $files = Get-ChildItem -Path $Path -Filter $Pattern -Recurse:$Recurse
+
+        if ($VerbosePreference) {
+            $all = Get-ChildItem -Path $Path -Recurse:$Recurse
+        }
+
+        foreach ($file in $files) {
+            if (Test-FileName -Path $file) {
+                # Add to ret
+                $retFiles += $file
+            }
+        }
+    }
+    
+    end {
+        "FilesToMove - Found [{0}] Valid [{1}]" -f $all.Length,$retFiles.Length | Write-Verbose
+        return $retFiles
+    }
+} Export-ModuleMember -Function Get-File
+
+function Rename-File {
+    [CmdletBinding(SupportsShouldProcess)]
+    Param(
+        [Parameter( ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Alias("PSPath")] [string[]] $Path,
+        [parameter()][string]$Description,
+        [parameter()][string]$Date,
+        [parameter()][string]$Owner,
+        [parameter()][string]$Target,
+        [parameter()][string]$Amount,
+        [parameter()][string]$What,
+        [parameter()][string]$Type
+    )
+
+    begin {
+
+    }
+
+    process {
+
+        #Path 
+        $files = Get-File              `
+            -Path $Path                `
+            -Pattern $Pattern          `
+            -Date $Date                `
+            -Owner $Owner              `
+            -Target $Target            `
+            -Amount $Amount            `
+            -What $What                `
+            -Description $Description  `
+            -Type $Type 
+
+
+        foreach ($File in $Files) {
+            
+            $DocFile = $File | ConvertTo-DocsDocName
+            $NewDocFile = New-DocName      `
+                -Path $File                `
+                -Date $Date                `
+                -Owner $Owner              `
+                -Target $Target            `
+                -Amount $Amount            `
+                -What $What                `
+                -Description $Description  `
+                -Type $Type 
+
+            $newFileName = $NewDocFile.Name()
+            $fileName = $DocFil.Name()
+            
+            if ($fileName.Name() -ne $newFileName) {
+                "{0} -> {1}" -f $fileName,$newFileName | Write-Verbose
+
+                if ($PSCmdlet.ShouldProcess($File.Name, "Renamed")) {
+                    Rename-Item -Path $File -NewName $newFileName -$PassThru 
+                } elseif ($WhatIfPreference) {
+                    $DocFile.Name()
+                }
+            } else {
+                "{0} = {1}" -f $fileName,$newFileName | Write-Verbose
+            }
+        }
+    }
+
+    end {
+    }
+} Export-ModuleMember -Function Rename-File
 
 function Move-File {
     [CmdletBinding(SupportsShouldProcess)]
