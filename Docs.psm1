@@ -306,7 +306,7 @@ function Get-Stores {
 
 } Export-ModuleMember -Function Get-Stores
 
-function Set-StoreLocation{
+function Set-LocationStore{
     [CmdletBinding()]
 
     param (
@@ -330,10 +330,10 @@ function Set-StoreLocation{
     } elseif (!$location.Exist) {
         "Locations does not exist" | Write-Error
     } else{
-        $location | Set-Location 
+        $location | Set-Location
         Get-ChildItem
     }
-} Export-ModuleMember -Function Set-StoreLocation
+} Export-ModuleMember -Function Set-LocationStore 
 
 function Get-Owners {
     [CmdletBinding()]
@@ -359,6 +359,7 @@ function New-DocName {
         [string]$Amount,
         [string]$What,
         [string]$Description,
+        [string]$PreDescription,
         [string]$Type
     )
 
@@ -369,8 +370,10 @@ function New-DocName {
     $dn.Target      = ($Target)      ? $Target      : $DocName.Target
     $dn.Amount      = ($Amount)      ? $Amount      : $DocName.Amount
     $dn.What        = ($What)        ? $What        : $DocName.What
-    $dn.Description = ($Description) ? $Description : $DocName.Description
     $dn.Type        = ($Type)        ? $Type        : $DocName.Type
+    
+    $dn.Description = ($Description) ? $Description : $DocName.Description
+    $dn.Description = ($PreDescription) ? ("{0}_{1}" -f $PreDescription, $DocName.Description) : $dn.Description
 
     # $dn.Date = $Date
     # $dn.Owner = $Owner
@@ -515,10 +518,10 @@ function ConvertTo-DocName {
 function Find-File {
     [CmdletBinding()]
     Param(
-        [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Parameter( ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [Alias("PSPath")][ValidateNotNullOrEmpty()]
         [string[]] $Path,
-        [parameter()][string]$Pattern,
+        [parameter(Position=0)][string]$Pattern,
         [parameter(ValueFromPipelineByPropertyName)][string]$Description,
         [parameter(ValueFromPipelineByPropertyName)][string]$Date,
         [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
@@ -530,6 +533,7 @@ function Find-File {
     )
     
     $retFiles = @()
+    $Pattern | Write-Verbose
     $Pattern = Get-FileNamePattern `
         -Pattern $Pattern          `
         -Date $Date                `
@@ -540,8 +544,10 @@ function Find-File {
         -Description $Description  `
         -Type $Type 
 
+    $Pattern | Write-Verbose
+
     foreach ($store in $(Get-Stores -Exist)) {
-        "Searching on {0}..." -f ($store.Path | Join-Path -ChildPath $Pattern)  | Write-Verbose
+        "Searching {0}..." -f ($store.Path | Join-Path -ChildPath $Pattern)  | Write-Verbose
         $retFiles += Get-ChildItem -Path $store.Path -Filter $Pattern -Recurse:$store.IsRecursive
     }
 
@@ -663,6 +669,7 @@ function Rename-File {
         [Parameter( ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [Alias("PSPath")] [string[]] $Path,
         [parameter()][string]$Description,
+        [parameter()][string]$PreDescription,
         [parameter()][string]$Date,
         [parameter()][string]$Owner,
         [parameter()][string]$Target,
@@ -679,8 +686,8 @@ function Rename-File {
     process {
 
         #Path 
-        $files = Get-File -Path $Path                
-
+        $files = Get-File -Path $Path         
+        
         foreach ($File in $Files) {
             
             $docName = $File | ConvertTo-DocsDocName
@@ -692,6 +699,7 @@ function Rename-File {
                 -Amount $Amount            `
                 -What $What                `
                 -Description $Description  `
+                -PreDescription $PreDescription  `
                 -Type $Type 
 
             $newFileName = $NewDocFile.Name()
@@ -730,7 +738,6 @@ function ConvertTo-File {
     )
 
     begin {
-
     }
 
     process {
@@ -740,7 +747,10 @@ function ConvertTo-File {
 
         foreach ($File in $Files) {
             
-            $docName = $File | ConvertTo-DocsDocName
+            $docName = New-DocName
+            $docName.Description = $file.BaseName
+            $docName.Type =  $file.Extension?.Substring(1)
+
             $NewDocFile = New-DocName      `
                 -DocName $docName          `
                 -Date $Date                `
@@ -759,10 +769,13 @@ function ConvertTo-File {
             $fileName = $File.Name
             
             if ($fileName -ne $newFileName) {
-                "{0} -> {1}" -f $fileName,$newFileName | Write-Verbose
-
+                
                 if ($PSCmdlet.ShouldProcess($File.Name, "Renamed")) {
                     $ret = $File | Rename-Item -NewName $newFileName -PassThru:$PassThru
+                } elseif ($WhatIfPreference) {
+                    "{0} -> {1}" -f $fileName,$newFileName | Write-Host
+                } else {
+                    "{0} -> {1}" -f $fileName,$newFileName | Write-Verbose
                 }
             } 
             else {

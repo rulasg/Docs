@@ -139,7 +139,7 @@ function DocsTest_GetStores {
 
 }
 
-function DocsTest_SetStoreLocation{
+function DocsTest_SetLocation{
 
     $storefolder1 = "." | Join-Path -ChildPath "Fakefolder1" -AdditionalChildPath "FakeStoreFolder1"
     $storefolder2 = "." | Join-Path -ChildPath "Fakefolder2" -AdditionalChildPath "FakeStoreFolder2"
@@ -151,15 +151,15 @@ function DocsTest_SetStoreLocation{
     $converted1 = $storefolder1 | Convert-Path
     $converted2 = $storefolder2 | Convert-Path
 
-    Set-DocsStoreLocation -Owner test1
+    Set-DocsLocationStore -Owner test1
 
     Assert-AreEqualPath -Expected $converted1  -Presented '.'
     
-    "test2" | Set-DocsStoreLocation 
+    "test2" | Set-DocsLocationStore 
 
     Assert-AreEqualPath -Expected $converted2 -Presented '.'
 
-    Set-DocsStoreLocation test1
+    Set-DocsLocationStore test1
 
     Assert-AreEqualPath -Expected $converted1  -Presented '.'
 }
@@ -273,13 +273,18 @@ function DocsTest_FileName {
 
 function DocsTest_Find_Simple{
     $storefolder = "." | Join-Path -ChildPath "Fakefolder" -AdditionalChildPath "FakeStoreFolder"
-
+    
+    $filename  = Get-DocsFileName -Owner Test -Target Testing -Description "Test File"
+    $filename2 = Get-DocsFileName -Owner kk   -Target kking   -Description "Test File"
+    
+    $FileFullName  = $storefolder | Join-Path -ChildPath $filename.Name()
+    $FileFullName2 = $storefolder | Join-Path -ChildPath $filename2.Name()
+    
     ResetDocsList
     Add-DocsStore -Owner test -Path $storefolder -Force
-
-    $filename = Get-DocsFileName -Owner Test -Target Testing -Description "Test File"
-    $FileFullName = $storefolder | Join-Path -ChildPath $filename.Name()
+    
     "This content is fake" | Out-File -FilePath $FileFullName
+    "This content is fake" | Out-File -FilePath $FileFullName2
 
     Assert-Count -Expected 1 -Presented ($FileFullName | Get-ChildItem )
 
@@ -287,6 +292,12 @@ function DocsTest_Find_Simple{
 
     Assert-Count -Expected 1 -Presented $result
     Assert-AreEqualPath -Expected $FileFullName -Presented $result
+
+    $result = Find-DocsFile kking
+
+    Assert-Count -Expected 1 -Presented $result
+    Assert-AreEqualPath -Expected $FileFullName2 -Presented $result
+
 }
 
 function DocsTest_Find_MultiFolder {
@@ -313,13 +324,22 @@ function DocsTest_Find_MultiFolder {
     "This content is fake" | Out-File -FilePath $FileFullName2
     "This content is fake" | Out-File -FilePath $FileFullName23
 
+    # Pattern 0
+
+    $result = Find-DocsFile 02
+
+    Assert-Count -Expected 2 -Presented $result
+    Assert-AreEqualPath -Expected $FileFullName13 -Presented $result[0]
+    Assert-AreEqualPath -Expected $FileFullName2  -Presented $result[1]
+
     # Owner 1
 
     Assert-Count -Expected 4 -Presented (Get-ChildItem -File -Recurse)
 
-    $result = Find-DocsFile -Owner Test1
+    $result = Find-DocsFile -Owner Test1 
 
     Assert-Count -Expected 2 -Presented $result
+
     $result = Find-DocsFile -Owner Test2
 
     Assert-Count -Expected 2 -Presented $result
@@ -724,6 +744,20 @@ function DocsTest_ConvertToDocName{
 
 }
 
+function DocsTest_RenameFile_WrongFile{
+
+    $oldName = "desc3.txt"
+    "This content is fake" | Out-File -FilePath $oldName
+
+    # Single file 
+    Assert-ItemExist    -Path $oldName
+    Rename-DocsFile -Path $oldName -Owner kk -WhatIf
+    Assert-ItemExist    -Path $oldName
+    
+    Rename-DocsFile -Path $oldName -Owner kk
+    Assert-ItemExist    -Path $oldName
+    Assert-Count -Expected 1 -Presented (Get-ChildItem)
+}
 function DocsTest_RenameFile_SingleFile{
 
     $oldName = "122012-OtherOwner-Target-Description.txt"
@@ -736,6 +770,23 @@ function DocsTest_RenameFile_SingleFile{
     Assert-ItemNotExist    -Path $newName
     
     Rename-DocsFile -Path $oldName -Owner kk
+    Assert-ItemExist    -Path $newName
+    Assert-Count -Expected 1 -Presented (Get-ChildItem)
+}
+
+function DocsTest_RenameFile_SingleFile_PreDescription{
+
+    $oldName = "122012-OtherOwner-Target-Desc1.txt"
+    $newName = "122012-kk-Target-PreDesc_Desc1.txt"
+
+    "This content is fake" | Out-File -FilePath $oldName
+
+    # Single file 
+    Assert-ItemExist    -Path $oldName
+    Rename-DocsFile -Path $oldName -Owner kk -PreDescription "PreDesc" -WhatIf
+    Assert-ItemNotExist    -Path $newName
+    
+    Rename-DocsFile -Path $oldName -Owner kk -PreDescription "PreDesc"
     Assert-ItemExist    -Path $newName
     Assert-Count -Expected 1 -Presented (Get-ChildItem)
 
