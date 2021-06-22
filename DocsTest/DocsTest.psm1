@@ -18,16 +18,19 @@ Write-Host "Loading DocsTest ..." -ForegroundColor DarkCyan
 function ResetDocsList([switch]$PassThru) {
 
     $TestStoreList = New-DocsStoresList
-    Initialize-DocsStoresList -StoreList $TestStoreList 
+    Reset-DocsStoresList -StoreList $TestStoreList 
 
     if ($PassThru) {
         return $TestStoreList
     } 
 }
 
-function DocsTest_Sample() {
-    Assert-IsTrue -Condition $true
+function DocsTest_ResetStores {
+
+    $TestStoreList = ResetDocsList -PassThru
+    Add-DocsStore -Owner "SampleOwner" -Path "." -IsRecursive
 }
+
 
 function DocsTest_AddStores {
     
@@ -160,6 +163,7 @@ function DocsTest_SetStoreLocation{
 
     Assert-AreEqualPath -Expected $converted1  -Presented '.'
 }
+
 function DocsTest_GetOwners {
     
     ResetDocsList
@@ -186,6 +190,40 @@ function DocsTest_GetOwners {
 
 }
 
+function DocsTest_GetOwners_Filtered {
+    
+    ResetDocsList
+
+    Add-DocsStore -Owner "kk2k2" -Path . -IsRecursive
+    Add-DocsStore -Owner "kk3k2" -Path "$Home/fackefolder"
+    Add-DocsStore -Owner "kt2k2" -Path . -IsRecursive
+
+    $result = Get-DocsOwners
+
+    Assert-Count -Expected 3 -Presented $result
+
+    $result = Get-DocsOwners kk*
+
+    Assert-Count -Expected 2 -Presented $result
+
+    Assert-AreEqual -Expected "kk2k2" -Presented $result[0]
+    Assert-AreEqual -Expected "kk3k2" -Presented $result[1]
+
+    $result = Get-DocsOwners *3*
+
+    Assert-Count -Expected 1 -Presented $result
+
+    Assert-AreEqual -Expected "kk3k2" -Presented $result
+
+    $result = Get-DocsOwners *k2
+
+    Assert-Count -Expected 3 -Presented $result
+
+    Assert-AreEqual -Expected "kk2k2" -Presented $result[0]
+    Assert-AreEqual -Expected "kk3k2" -Presented $result[1]
+    Assert-AreEqual -Expected "kt2k2" -Presented $result[2]
+
+}
 function DocsTest_GetFileNamePattern{
 
         # Base Pattern
@@ -759,8 +797,6 @@ function DocsTest_RenameFile_Pipe_String{
     "This content is fake" | Out-File -FilePath $oldName2
     "This content is fake" | Out-File -FilePath $oldName3
 
-    $files = Get-ChildItem -Path 12*
-
     # Single file 
     @($oldName1,$oldName3) | Rename-DocsFile -Owner kk
     Assert-ItemExist    -Path $newName1
@@ -769,6 +805,98 @@ function DocsTest_RenameFile_Pipe_String{
     Assert-Count -Expected 3 -Presented (Get-ChildItem)
 }
 
+function DocsTest_ConverToFile_SingleFile {
+    
+    $fileName = "filename1.txt"
+    $newName = "121212-kk-SomeDescription-filename1.txt"
+
+    "This content is fake" | Out-File -FilePath $fileName 
+
+    # Single file 
+    Assert-ItemExist    -Path $fileName
+    Assert-ItemNotExist    -Path $newName
+
+    ConvertTo-DocsFile -Path $fileName -Owner kk -Date "121212" -Description "SomeDescription" -WhatIf 
+   
+    Assert-Count -Expected 1 -Presented (Get-ChildItem)
+    Assert-ItemNotExist    -Path $newName
+    Assert-ItemExist    -Path $fileName
+  
+    ConvertTo-DocsFile -Path $fileName -Owner kk -Date "121212" -Description "SomeDescription"
+   
+    Assert-Count -Expected 1 -Presented (Get-ChildItem)
+    Assert-ItemNotExist    -Path $fileName
+    Assert-ItemExist -Path $newName
+}
+
+function DocsTest_ConverToFile_WildChar{
+
+    $oldName1 = "Desc112.txt"
+    $oldName2 = "Desc122.pdf"
+    $oldName3 = "Desc132.txt"
+    $newName1 = "121212-kk-Desc112.txt"
+    $newName2 = "121212-kk-Desc122.pdf"
+    $newName3 = "121212-kk-Desc132.txt"
+    "This content is fake" | Out-File -FilePath $oldName1
+    "This content is fake" | Out-File -FilePath $oldName2
+    "This content is fake" | Out-File -FilePath $oldName3
+
+    # Single file 
+    ConvertTo-DocsFile -Path "Desc1*" -Owner kk -Date "121212"
+    Assert-ItemExist    -Path $newName1
+    Assert-ItemExist    -Path $newName2
+    Assert-ItemExist    -Path $newName3
+    Assert-Count -Expected 3 -Presented (Get-ChildItem)
+
+}
+
+function DocsTest_ConverToFile_Pipe_Files{
+
+
+    $oldName1 = "12Desk1.txt"
+    $oldName2 = "12Desk2.pdf"
+    $oldName3 = "132012-OtherOwner-Description.txt"
+
+    $newName1 = "121212-kk-rename-12Desk1.txt"
+    $newName2 = "121212-kk-rename-12Desk2.pdf"
+    $newName3 = "132012-kk-Description.txt"
+
+    "This content is fake" | Out-File -FilePath $oldName1
+    "This content is fake" | Out-File -FilePath $oldName2
+    "This content is fake" | Out-File -FilePath $oldName3
+
+    $files = Get-ChildItem -Path 12*
+
+    # Single file 
+    $files | ConvertTo-DocsFile -Owner kk -Target rename -Date 121212
+    Assert-ItemExist    -Path $newName1
+    Assert-ItemExist    -Path $newName2
+    Assert-ItemNotExist    -Path $newName3
+    Assert-Count -Expected 3 -Presented (Get-ChildItem)
+
+}
+
+function DocsTest_ConverToFile_Pipe_String{
+
+    $oldName1 = "12Desk1.txt"
+    $oldName2 = "132012-OtherOwner-Description.txt"
+    $oldName3 = "12Desk2.pdf"
+
+    $newName1 = "121212-kk-rename-12Desk1.txt"
+    $newName3 = "121212-kk-rename-12Desk2.pdf"
+
+    "This content is fake" | Out-File -FilePath $oldName1
+    "This content is fake" | Out-File -FilePath $oldName2
+    "This content is fake" | Out-File -FilePath $oldName3
+
+    # Single file 
+    @($oldName1,$oldName3) |  ConvertTo-DocsFile -Owner kk -Target rename -Date 121212
+
+    Assert-ItemExist    -Path $newName1
+    Assert-ItemExist    -Path $oldName2
+    Assert-ItemExist    -Path $newName3
+    Assert-Count -Expected 3 -Presented (Get-ChildItem)
+}
 
 Export-ModuleMember -Function DocsTest_*
 

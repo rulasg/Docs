@@ -5,4 +5,4 @@ $ModuleName = "Docs"
 
 Import-Module -Name TestingHelper -Force
 
-Test-Module -Name $ModuleName DocsTest_RenameFile_SingleFile
+Test-Module -Name $ModuleName 

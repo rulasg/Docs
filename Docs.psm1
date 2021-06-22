@@ -197,16 +197,24 @@ function Add-Store {
     )
     
     if (! $script:StoresList) {
-        Initialize-StoresList
+        Reset-StoresList
     }
 
     if (!($Path | Test-Path) -and $Force) {
         $null = New-item -ItemType Directory -Force -Path $Path 
     }
 
+    $keyOwner = $Owner.ToLower()
+    
     $o = New-Store -Owner $Owner -Path $Path -IsRecursive:$IsRecursive
 
-    $StoresList.Add($Owner.ToLower(), $o)
+    "[Add-Store] {0} - {1}" -f $keyOwner,$o.Path | Write-Verbose
+
+    if ((Get-Owners) -contains $keyOwner) {
+        $StoresList[$keyOwner] = $o
+    } else {
+        $StoresList.Add($Owner.ToLower(), $o)
+    }
 
 } Export-ModuleMember -Function Add-Store
 
@@ -242,7 +250,7 @@ function New-Store {
     return $o
 }
 
-function Initialize-StoresList {
+function Reset-StoresList {
     [CmdletBinding()]
     param (
         $StoreList
@@ -254,7 +262,8 @@ function Initialize-StoresList {
     else {
         $script:StoresList = New-StoresList
     }    
-} Export-ModuleMember -Function Initialize-StoresList
+
+} Export-ModuleMember -Function Reset-StoresList
 
 function New-StoresList {
     [CmdletBinding()]
@@ -301,7 +310,18 @@ function Set-StoreLocation{
     [CmdletBinding()]
 
     param (
-        [parameter(Mandatory,Position=1,ValueFromPipeline)][string] $Owner
+        [parameter(Mandatory,Position=1,ValueFromPipeline)]
+        [ArgumentCompletions(
+            {
+                param($Command, $Parameter, $WordToComplete, $CommandAst, $FakeBoundParams)
+                Get-Owners -Owner $Owner
+            })]
+        [ValidateScript(
+            {
+                $_ -in (Get-Owners)
+            }
+        )]
+        [string] $Owner
     )
     $location = Get-Stores -Owner $Owner
 
@@ -318,22 +338,13 @@ function Set-StoreLocation{
 function Get-Owners {
     [CmdletBinding()]
     param (
+        [Parameter()][string] $Owner
     )
-    $script:StoresList.Keys
+    if ([string]::IsNullOrWhiteSpace($Owner)) {
+        $Owner = "*"
+    }
+    $script:StoresList.Keys | Where-Object {$_ -like $Owner}
     
-    # Get-Stores | ForEach-Object {
-
-    #     $v = $_
-    #     $o = New-Object -TypeName psobject
-
-    #     $o | Add-Member -MemberType NoteProperty -Name Owner -Value $v.Owner
-    #     $o | Add-Member -MemberType NoteProperty -Name Path -Value $v.Path
-    #     $o | Add-Member -MemberType NoteProperty -Name IsRecursive -Value $v.IsRecursive
-
-    #     $o | Add-Member -MemberType NoteProperty -Name Exist -Value (Test-Path -Path $v.Path)
-
-    #     $o
-    # }
 } Export-ModuleMember -Function Get-Owners
 
 # Files
@@ -386,7 +397,7 @@ function Get-FileNamePattern {
     )
 
     if ($Pattern) {
-        return $Pattern
+        return ($Pattern -contains '*') ? $Pattern : ("*{0}*" -f $Pattern)
     }
 
     $dn = New-DocName               `
@@ -530,7 +541,7 @@ function Find-File {
         -Type $Type 
 
     foreach ($store in $(Get-Stores -Exist)) {
-        "Searching on {0}..." -f $store.Path | Write-Verbose
+        "Searching on {0}..." -f ($store.Path | Join-Path -ChildPath $Pattern)  | Write-Verbose
         $retFiles += Get-ChildItem -Path $store.Path -Filter $Pattern -Recurse:$store.IsRecursive
     }
 
@@ -657,7 +668,8 @@ function Rename-File {
         [parameter()][string]$Target,
         [parameter()][string]$Amount,
         [parameter()][string]$What,
-        [parameter()][string]$Type
+        [parameter()][string]$Type,
+        [parameter()][switch]$PassThru
     )
 
     begin {
@@ -689,7 +701,7 @@ function Rename-File {
                 "{0} -> {1}" -f $fileName,$newFileName | Write-Verbose
 
                 if ($PSCmdlet.ShouldProcess($File.Name, "Renamed")) {
-                    $File | Rename-Item -NewName $newFileName 
+                    $File | Rename-Item -NewName $newFileName -PassThru:$PassThru
                 }
             } 
             else {
@@ -701,6 +713,70 @@ function Rename-File {
     end {
     }
 } Export-ModuleMember -Function Rename-File
+
+function ConvertTo-File {
+    [CmdletBinding(SupportsShouldProcess)]
+    Param(
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Alias("PSPath")] [string[]] $Path,
+        [parameter()][string]$Description,
+        [parameter()][string]$Date,
+        [parameter()][string]$Owner,
+        [parameter()][string]$Target,
+        [parameter()][string]$Amount,
+        [parameter()][string]$What,
+        [parameter()][string]$Type,
+        [parameter()][switch]$PassThru
+    )
+
+    begin {
+
+    }
+
+    process {
+
+        #Path 
+        $files = Get-ChildItem -Path $Path
+
+        foreach ($File in $Files) {
+            
+            $docName = $File | ConvertTo-DocsDocName
+            $NewDocFile = New-DocName      `
+                -DocName $docName          `
+                -Date $Date                `
+                -Owner $Owner              `
+                -Target $Target            `
+                -Amount $Amount            `
+                -What $What                `
+                -Description $Description  `
+                -Type $Type 
+
+            $NewDocFile.Description = $Description ? ("{0}-{1}" -f $Description,$file.BaseName) : $file.BaseName
+            
+            $NewDocFile.Type = $file.Extension.Substring(1)
+            
+            $newFileName = $NewDocFile.Name()
+            $fileName = $File.Name
+            
+            if ($fileName -ne $newFileName) {
+                "{0} -> {1}" -f $fileName,$newFileName | Write-Verbose
+
+                if ($PSCmdlet.ShouldProcess($File.Name, "Renamed")) {
+                    $ret = $File | Rename-Item -NewName $newFileName -PassThru:$PassThru
+                }
+            } 
+            else {
+                "{0} =={1}" -f $fileName,$newFileName | Write-Verbose
+            }
+
+            # ONly with value if Passthru
+            $ret
+        }
+    }
+
+    end {
+    }
+} Export-ModuleMember -Function ConvertTo-File
 
 function Move-File {
     [CmdletBinding(SupportsShouldProcess)]
