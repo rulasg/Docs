@@ -27,16 +27,17 @@ class DocsStore {
 }
 
 class DocName {
-    static [string] hidden $SPLITTER = '-'
-    static [string] hidden $DEFAULT_OWNER = "rulasg"
-    static [string] hidden $DEFAULT_TYPE = "pdf"
-    static [string] hidden $DEFAULT_DESCRIPTION = "DESCRIPTION"
+    static [string] $SPLITTER = '-'
+    static [string] $DEFAULT_OWNER = "rulasg"
+    static [string] $DEFAULT_TYPE = "pdf"
+    static [string] $DEFAULT_DESCRIPTION = "DESCRIPTION"
+    static [string] $DECIMALSEPARATOR = "#"
 
     [string] $Date #Mandatory
     [string] $Owner #Mandatory
     [string] $Target
-    [string] $Amount
     [string] $What
+    [string] $Amount
     [string] $Description #Mandatory
     [string] $Type #Mandatory
 
@@ -65,8 +66,8 @@ class DocName {
         #d
         $o = [DocName]::Section($o)
         $ta = [DocName]::Section($this.Target)
-        $am = [DocName]::Section($this.Amount)
         $w = [DocName]::Section($this.What)
+        $am = [DocName]::Section($this.Amount)
         $des = [DocName]::Section($des)
         #t
 
@@ -82,8 +83,8 @@ class DocName {
         $d = [DocName]::SectionPattern($this.Date)
         $o = [DocName]::SectionPatternMandatory($this.Owner)
         $ta = [DocName]::SectionPatternOptional($this.Target)
-        $am = [DocName]::SectionPatternOptional($this.Amount)
         $w = [DocName]::SectionPatternOptional($this.What)
+        $am = [DocName]::SectionPatternOptional($this.Amount)
         $des = [DocName]::SectionPatternMandatory($this.Description.Replace(' ', '_'))
         $t = [DocName]::SectionPattern($this.Type)
 
@@ -111,25 +112,35 @@ class DocName {
             return $false
         }
 
+        # What has not Amount format
+        if (![string]::IsNullOrWhiteSpace($this.What)) 
+        {
+            if (([DocName]::TestAmmount($this.What,[DocName]::DECIMALSEPARATOR)) -or ([DocName]::TestAmmount($this.What,'.'))) 
+            {
+                return $false
+            }
+        }
+
         # Amount with # as separator
         if (![string]::IsNullOrWhiteSpace($this.Amount)) {
-            if (![DocName]::TestAmmount($this.Amount)) {
+            if (![DocName]::TestAmmount($this.Amount,[DocName]::DECIMALSEPARATOR)) {
                 return $false
             }
         }
 
         return $true
-
     }
 
     [string] Sample() {
 
-        return ("{0}-{1}-{2}-{3}-{4}-{5}.{6}" -f "date", "owner", "target", "amount", "what", "desc", "type")
+        return ("{0}-{1}-{2}-{3}-{4}-{5}.{6}" -f "date", "owner", "target", "what", "amount", "desc", "type")
     }
 
-    static [DocName] ConvertToDocName([string]$fileName) {
+    static [DocName] ConvertToDocName([string]$Path) {
 
         $doc = [DocName]::new()
+
+        $fileName = $Path | Split-Path -Leaf
         
         # Mandatory
         
@@ -149,21 +160,14 @@ class DocName {
         switch ($secondSplit.Count) {
             4 { 
                 $doc.Target = $secondSplit[0]
-                $doc.Amount = $secondSplit[1]
-                $doc.What = $secondSplit[2]
+                $doc.What = $secondSplit[1]
+                $doc.Amount = $secondSplit[2]
                 $doc.Description = $secondSplit[3]
             }
             3 {
                 # Ammount before What
                 $doc.Target = $secondSplit[0]
-
-                if ([DocName]::TestAmmount($secondSplit[1])) {
-                    $doc.Amount = $secondSplit[1]
-                }
-                else {
-                    $doc.What = $secondSplit[1]
-                }
-
+                $doc.What = $secondSplit[1]
                 $doc.Description = $secondSplit[2]
             }
             2 {
@@ -175,15 +179,36 @@ class DocName {
             }
         }
 
-        return $doc
+        if ($doc.IsValid()) {
+            return $doc
+        } else {
+            "DocName object not valid with given parameters" | Write-Error
+            return $null
+        }
     }
-    static [bool] hidden TestAmmount([string] $Amount) {
-        return $Amount -match '^[1-9]\d*(\#\d+)?$'
+    static [bool] hidden TestAmmount([string] $Amount,[string] $decimalSeparator) {
+        $ret = $Amount -match "^[1-9]\d*(\{0}\d+)?$" -f $decimalSeparator
+
+        if (!$ret) {
+            "Amount format is not correct [ {0}]" -f $Amount | Write-Verbose
+        }
+
+        return $ret
     }
     static [bool] hidden TestDate([string] $Date) {
-        return $Date -match "^\d+$"
+        $ret = $Date -match "^\d+$"
+
+        if (!$ret) {
+            "Date format is not correct [ {0}]" -f $Date | Write-Verbose
+        }
+
+        return $ret
     }
 }
+
+function Set-VerboseOn{
+    $VerbosePreference = Continue
+} Export-ModuleMember -Function Set-VerboseOn
 
 # Stores
 
@@ -274,6 +299,7 @@ function New-StoresList {
 
 function Get-Stores {
     [CmdletBinding()]
+    [Alias("gs")]
     param (
         [parameter()][string] $Owner,
         [parameter()][switch] $Exist
@@ -304,10 +330,11 @@ function Get-Stores {
 
     }
 
-} Export-ModuleMember -Function Get-Stores
+} Export-ModuleMember -Function Get-Stores -Alias "gs"
 
 function Set-LocationStore{
     [CmdletBinding()]
+    [Alias("sl")]
 
     param (
         [parameter(Mandatory,Position=1,ValueFromPipeline)]
@@ -333,10 +360,11 @@ function Set-LocationStore{
         $location | Set-Location
         Get-ChildItem
     }
-} Export-ModuleMember -Function Set-LocationStore 
+} Export-ModuleMember -Function Set-LocationStore -Alias "sl"
 
 function Get-Owners {
     [CmdletBinding()]
+    [Alias("go")]
     param (
         [Parameter()][string] $Owner
     )
@@ -345,7 +373,7 @@ function Get-Owners {
     }
     $script:StoresList.Keys | Where-Object {$_ -like $Owner}
     
-} Export-ModuleMember -Function Get-Owners
+} Export-ModuleMember -Function Get-Owners -Alias "go"
 
 # Files
 
@@ -356,8 +384,8 @@ function New-DocName {
         [string]$Date,
         [string]$Owner,
         [string]$Target,
-        [string]$Amount,
         [string]$What,
+        [string]$Amount,
         [string]$Description,
         [string]$PreDescription,
         [string]$Type
@@ -368,8 +396,8 @@ function New-DocName {
     $dn.Date        = ($Date)        ? $Date        : $DocName.Date
     $dn.Owner       = ($Owner)       ? $Owner       : $DocName.Owner
     $dn.Target      = ($Target)      ? $Target      : $DocName.Target
-    $dn.Amount      = ($Amount)      ? $Amount      : $DocName.Amount
     $dn.What        = ($What)        ? $What        : $DocName.What
+    $dn.Amount      = ($Amount)      ? $Amount      : $DocName.Amount
     $dn.Type        = ($Type)        ? $Type        : $DocName.Type
     
     $dn.Description = ($Description) ? $Description : $DocName.Description
@@ -377,12 +405,19 @@ function New-DocName {
 
     # $dn.Date = $Date
     # $dn.Owner = $Owner
-    # $dn.Target = $Target
     # $dn.Amount = $Amount
+    # $dn.Target = $Target
     # $dn.What = $What
     # $dn.Description = $Description
     # $dn.Type = $Type
 
+    # if ($dn.IsValid()) {
+    #     return $dn
+    # } else {
+    #     "DocName object not valid with given parameters" | Write-Error
+    #     return $null
+    # }
+    
     return $dn
 }
 
@@ -393,8 +428,8 @@ function Get-FileNamePattern {
         [string]$Date,
         [string]$Owner,
         [string]$Target,
-        [string]$Amount,
         [string]$What,
+        [string]$Amount,
         [string]$Description,
         [string]$Type
     )
@@ -407,8 +442,8 @@ function Get-FileNamePattern {
         -Date $Date                `
         -Owner $Owner              `
         -Target $Target            `
-        -Amount $Amount            `
         -What $What                `
+        -Amount $Amount            `
         -Description $Description  `
         -Type $Type                
 
@@ -421,24 +456,38 @@ function Get-FileName {
         [Parameter(ValueFromPipelineByPropertyName)][string]$Date,
         [Parameter(ValueFromPipelineByPropertyName)][string]$Owner,
         [Parameter(ValueFromPipelineByPropertyName)][string]$Target,
-        [Parameter(ValueFromPipelineByPropertyName)][string]$Amount,
         [Parameter(ValueFromPipelineByPropertyName)][string]$What,
+        [Parameter(ValueFromPipelineByPropertyName)][string]$Amount,
         [Parameter(ValueFromPipelineByPropertyName, Mandatory)][string]$Description,
         [Parameter(ValueFromPipelineByPropertyName)][string]$Type
     )
 
     process{
 
-        $dn = New-DocName               `
+        $dn = New-DocName      `
+            -DocName $docName          `
             -Date $Date                `
             -Owner $Owner              `
             -Target $Target            `
             -Amount $Amount            `
             -What $What                `
             -Description $Description  `
-            -Type $Type                
+            -PreDescription $PreDescription  `
+            -Type $Type 
+            
+        # Mandatory Default values
+        $dn.Date        = (![string]::IsNullOrWhiteSpace($dn.Date)) ? $dn.Date : (Get-Date -Format 'yyMMdd')
+        $dn.Owner       = (![string]::IsNullOrWhiteSpace($dn.Owner)) ? $dn.Owner : ([DocName]::DEFAULT_OWNER)
+        $dn.Description = (![string]::IsNullOrWhiteSpace($dn.Description)) ? $dn.Description : ([DocName]::DEFAULT_DESCRIPTION)
+        $dn.Type        = (![string]::IsNullOrWhiteSpace($dn.Type)) ? $dn.Type : ([DocName]::DEFAULT_TYPE) 
     
-        $dn
+        if ($dn.IsValid()) {
+            return $dn
+        }
+        
+        # "[Get-FileName] Error" | Write-Error
+        # return $null
+        throw "[Get-FileName] DocName not valid"
     }
     
 } Export-ModuleMember -Function Get-FileName
@@ -517,6 +566,7 @@ function ConvertTo-DocName {
 
 function Find-File {
     [CmdletBinding()]
+    [Alias("f")]
     Param(
         [Parameter( ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [Alias("PSPath")][ValidateNotNullOrEmpty()]
@@ -526,8 +576,8 @@ function Find-File {
         [parameter(ValueFromPipelineByPropertyName)][string]$Date,
         [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
         [parameter(ValueFromPipelineByPropertyName)][string]$Target,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
         [parameter(ValueFromPipelineByPropertyName)][string]$What,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
         [parameter(ValueFromPipelineByPropertyName)][string]$Type,
         [parameter()][switch] $Recurse
     )
@@ -553,7 +603,7 @@ function Find-File {
 
     return $retFiles
     
-} Export-ModuleMember -Function Find-File
+} Export-ModuleMember -Function Find-File -Alias "f"
 
 function Get-FileToMove {
     [CmdletBinding()]
@@ -576,7 +626,7 @@ function Get-FileToMove {
     }
     
     process {
-        if (!$Path) { $Path = "." }
+        $Path = $Path ?? "."
 
         $Pattern = Get-FileNamePattern `
             -Pattern $Pattern          `
@@ -630,7 +680,8 @@ function Get-File {
     }
     
     process {
-        if (!$Path) { $Path = "." }
+
+        $Path = $Path ?? "."
 
         $Pattern = Get-FileNamePattern `
             -Pattern $Pattern          `
@@ -650,7 +701,9 @@ function Get-File {
         }
 
         foreach ($file in $files) {
-            if (Test-File -Path $file) {
+            $dn = [DocName]::ConvertToDocName($file)
+
+            if ( ($dn)?.IsValid()) {
                 # Add to ret
                 $retFiles += $file
             }
@@ -727,13 +780,14 @@ function ConvertTo-File {
     Param(
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [Alias("PSPath")] [string[]] $Path,
-        [parameter()][string]$Description,
-        [parameter()][string]$Date,
-        [parameter()][string]$Owner,
-        [parameter()][string]$Target,
-        [parameter()][string]$Amount,
-        [parameter()][string]$What,
-        [parameter()][string]$Type,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Description,
+        [parameter(ValueFromPipelineByPropertyName)][string]$PreDescription,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Date,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Target,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
+        [parameter(ValueFromPipelineByPropertyName)][string]$What,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Type,
         [parameter()][switch]$PassThru
     )
 
@@ -751,14 +805,15 @@ function ConvertTo-File {
             $docName.Description = $file.BaseName
             $docName.Type =  $file.Extension?.Substring(1)
 
-            $NewDocFile = New-DocName      `
-                -DocName $docName          `
-                -Date $Date                `
-                -Owner $Owner              `
-                -Target $Target            `
-                -Amount $Amount            `
-                -What $What                `
-                -Description $Description  `
+            $NewDocFile = New-DocName            `
+                -DocName $docName                `
+                -Date $Date                      `
+                -Owner $Owner                    `
+                -Target $Target                  `
+                -Amount $Amount                  `
+                -What $What                      `
+                -Description $Description        `
+                -PreDescription $PreDescription  `
                 -Type $Type 
 
             $NewDocFile.Description = $Description ? ("{0}-{1}" -f $Description,$file.BaseName) : $file.BaseName
@@ -849,11 +904,14 @@ function Move-File {
                     $destinationPath = $destination | Join-Path -ChildPath $File.Name
                     
                     if (!(Test-Path -Path $destinationPath)) {
-                        
+                        #File do not exist
+
                         $File | Move-Item -Destination $destinationPath -Confirm:$false
                         $Status = "MOVED"
-                    } 
-                    else {
+                    } elseif (($file | convert-Path) -eq ($destinationPath | Convert-Path) ) {
+                        # Is the same file. Found in the store
+                        $status = "ARE_THE_SAME"
+                    } else {
                         #File Exists
         
                         $hashSource = Get-FileHash -Path $File

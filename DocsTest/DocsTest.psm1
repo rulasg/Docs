@@ -239,8 +239,8 @@ function DocsTest_FileName {
     $date = "121212"
     $owner = "sampleOwner"
     $target = "SampleTarget"
-    $amount = "99#99"
     $what = "sampleWhat"
+    $amount = "99#99"
     $desc = "SampleDescription"
     $type = "SampleType"
     
@@ -248,9 +248,8 @@ function DocsTest_FileName {
     # Mandatory fields
     $defaultOwner = "rulasg"
     $defaultExt = "pdf"
-    $fn = Get-DocsFileName -Target $target -Description $desc
+    $fn = Get-DocsFileName -Target $target -Description $desc -Verbose
     Assert-AreEqual -Presented $fn.Name() -Expected ("{0}-{1}-{2}-{3}.{4}" -f (Get-Date -Format 'yyMMdd'), $defaultOwner, $target, $desc, $defaultExt)
-    Assert-AreEqual -Presented $fn.Pattern() -Expected ("*-*-*{0}*-*{1}*.*" -f $target, $desc)
 
     # Full seeded name
     $fn = Get-DocsFileName  `
@@ -263,11 +262,6 @@ function DocsTest_FileName {
         -Type $type         `
         
     Assert-AreEqual -Presented $fn.Name() -Expected ("{0}-{1}-{2}-{3}-{4}-{5}.{6}" -f $date, $owner, $target, $amount, $what, $desc, $type)
-    Assert-AreEqual -Presented $fn.Pattern() -Expected ("*{0}*-*{1}*-*{2}*-*{3}*-*{4}*-*{5}*.*{6}*" -f $date, $owner, $target, $amount, $what, $desc, $type)
-
-    # Name Pattern
-
-    # Assert-AreEqual -Presented $fn.Sample() -Expected ("{0}-{1}-{2}-{3}-{4}-{5}.{6}" -f "date", "owner", "target", "amount", "what", "desc", "type")
 
 }
 
@@ -416,20 +410,22 @@ function DocsTest_TestFile{
 
 function DocsTest_TestFileName_FileFormats {
     
-    Assert-IsTrue -Condition ("121212-owner-descr"    | Test-DocsFileName)
-    Assert-IsTrue -Condition ("121212-owner-Desc.txt" | Test-DocsFileName)
-    Assert-IsTrue -Condition ("121212-owner-target-Desc.txt" | Test-DocsFileName)
-    Assert-IsTrue -Condition ("121212-owner-target-32#32-Desc.txt" | Test-DocsFileName)
-    Assert-IsTrue -Condition ("121212-owner-target-What-Desc.txt" | Test-DocsFileName)
-    Assert-IsTrue -Condition ("121212-owner-target-32#32-What-Desc.txt" | Test-DocsFileName)
-    Assert-IsTrue -Condition ("121212-owner-target-32#32-What-Desc-dasd-asdasd-asddas.txt" | Test-DocsFileName)
+    Assert-IsTrue -Condition  ("121212-owner-descr"                                            | Test-DocsFileName) -Comment "121212-owner-descr"                                           
+    Assert-IsTrue -Condition  ("121212-owner-Desc.txt"                                         | Test-DocsFileName) -Comment "121212-owner-Desc.txt"                                        
+    Assert-IsTrue -Condition  ("121212-owner-target-Desc.txt"                                  | Test-DocsFileName) -Comment "121212-owner-target-Desc.txt"                                 
+    Assert-IsTrue -Condition  ("121212-owner-target-What-Desc.txt"                             | Test-DocsFileName) -Comment "121212-owner-target-What-Desc.txt"                            
+    Assert-IsTrue -Condition  ("121212-owner-target-What-32#32-Desc.txt"                       | Test-DocsFileName) -Comment "121212-owner-target-What-32#32-Desc.txt"                      
+    Assert-IsTrue -Condition  ("121212-owner-target-What-32#32-Desc-dasd-asdasd-asddas.txt"    | Test-DocsFileName) -Comment "121212-owner-target-What-32#32-Desc-dasd-asdasd-asddas.txt"   
     
-    Assert-IsFalse -Condition ("something"    | Test-DocsFileName)
-    Assert-IsFalse -Condition ("121212-NoOwner.txt"    | Test-DocsFileName)
-    Assert-IsFalse -Condition ("121212-NoOwner"    | Test-DocsFileName)
-    Assert-IsFalse -Condition ("Owner-Descdescr.txt"    | Test-DocsFileName)
-    Assert-IsFalse -Condition ("12121a-owner-descr.txt"    | Test-DocsFileName)
-    Assert-IsFalse -Condition ("121212-owner-target-Ammount-What-Desc-dasd-asdasd-asddas.txt" | Test-DocsFileName)
+    Assert-IsFalse -Condition ("something"                                                     | Test-DocsFileName) -Comment "something"                                                    
+    Assert-IsFalse -Condition ("121212-NoOwner.txt"                                            | Test-DocsFileName) -Comment "121212-NoOwner.txt"                                           
+    Assert-IsFalse -Condition ("121212-NoOwner"                                                | Test-DocsFileName) -Comment "121212-NoOwner"                                               
+    Assert-IsFalse -Condition ("Owner-Descdescr.txt"                                           | Test-DocsFileName) -Comment "Owner-Descdescr.txt"                                          
+    Assert-IsFalse -Condition ("12121a-owner-descr.txt"                                        | Test-DocsFileName) -Comment "12121a-owner-descr.txt"                                       
+    Assert-IsFalse -Condition ("121212-owner-target-Ammount-What-Desc-dasd-asdasd-asddas.txt"  | Test-DocsFileName) -Comment "121212-owner-target-Ammount-What-Desc-dasd-asdasd-asddas.txt" 
+    Assert-IsFalse -Condition ("121212-owner-target-32.32-Desc.txt"                            | Test-DocsFileName) -Comment "121212-owner-target-32#32-Desc.txt"                           
+    Assert-IsFalse -Condition ("121212-owner-target-32#32-Desc.txt"                            | Test-DocsFileName) -Comment "121212-owner-target-32#32-Desc.txt"                           
+    Assert-IsFalse -Condition ("121212-owner-target-32#32-What-Desc.txt"                       | Test-DocsFileName) -Comment "121212-owner-target-32#32-What-Desc.txt"                      
     
 }
 
@@ -563,7 +559,137 @@ function DocsTest_GetFileToMove_SpecificPath{
     Assert-AreEqualPath -Expected $localfile.Name() -Presented $result[2].FullName
 }
 
+function DocsTest_GetFile_All{
 
+    $filename1  = Get-DocsFileName -Owner Test1 -Target Testing1 -Description "Test0 File1"  -Type test1 -Date 100101
+    $filename13 = Get-DocsFileName -Owner Test1 -Target Testing3 -Description "Test File13" -Type test1  -Date 110213
+    $filename2  = Get-DocsFileName -Owner Test2 -Target Testing2 -Description "Test0 File2"  -Type test1 -Date 100201
+    $filename23 = Get-DocsFileName -Owner Test2 -Target Testing3 -Description "Test0 File23" -Type test  -Date 110323
+    $wrong = Get-DocsFileName -Owner Test2 -Target Testing3 -Description "Test0 File23" -Type test  -Date 110323 -Amount 32#5 -what "testWhat"
+
+    "This content is fake" | Out-File -FilePath $FileName1.Name()
+    "This content is fake" | Out-File -FilePath $FileName13.Name()
+    "This content is fake" | Out-File -FilePath $FileName2.Name()
+    "This content is fake" | Out-File -FilePath $FileName23.Name()
+    
+    "This content is fake" | Out-File -FilePath $wrong.Name()
+    "This content is fake" | Out-File -FilePath "Test1-Target-Description.txt"
+    "This content is fake" | Out-File -FilePath "122012-OtherOwner-Target-Description.txt"
+    "This content is fake" | Out-File -FilePath "122012-NearlyCorrect.txt"
+    "This content is fake" | Out-File -FilePath "122012-Test1.txt"
+    "This content is fake" | Out-File -FilePath "122012-OtherOwner-Description.txt"
+
+    $result = Get-DocsFile
+
+    Assert-Count -Expected 6 -Presented $result
+    Assert-AreEqual -Expected $FileName1.Name() -Presented $result[0].Name
+    Assert-AreEqual -Expected $FileName2.Name() -Presented $result[1].Name
+    Assert-AreEqual -Expected $FileName13.Name() -Presented $result[2].Name
+    Assert-AreEqual -Expected $FileName23.Name() -Presented $result[3].Name
+    Assert-AreEqual -Expected "122012-OtherOwner-Description.txt" -Presented $result[4].Name
+    Assert-AreEqual -Expected "122012-OtherOwner-Target-Description.txt" -Presented $result[5].Name
+
+    $result = Get-DocsFile -Target Testing3
+
+    Assert-Count -Expected 2 -Presented $result
+    Assert-AreEqual -Expected $FileName13.Name() -Presented $result[0].Name
+    Assert-AreEqual -Expected $FileName23.Name() -Presented $result[1].Name
+}
+
+function DocsTest_GetFile_Recursive{
+
+    $storefolder1 = "." | Join-Path -ChildPath "Fakefolder1" -AdditionalChildPath "FakeStoreFolder1"
+    $storefolder2 = "." | Join-Path -ChildPath "Fakefolder2" -AdditionalChildPath "FakeStoreFolder2"
+
+    ResetDocsList
+    Add-DocsStore -Owner test1 -Path $storefolder1 -Force
+    Add-DocsStore -Owner test2 -Path $storefolder2 -Force
+
+    $filename1  = Get-DocsFileName -Owner Test1 -Target Testing1 -Description "Test0 File1"  -Type test1 -Date 100101
+    $filename13 = Get-DocsFileName -Owner Test1 -Target Testing3 -Description "Test File13" -Type test1  -Date 110213
+    $filename2  = Get-DocsFileName -Owner Test2 -Target Testing2 -Description "Test0 File2"  -Type test1 -Date 100201
+    $filename23 = Get-DocsFileName -Owner Test2 -Target Testing3 -Description "Test0 File23" -Type test  -Date 110323
+
+    $FileFullName1 = Join-Path -Path $storefolder1 -ChildPath $FileName1.Name()
+    $FileFullName13 = Join-Path -Path $storefolder1 -ChildPath $FileName13.Name()
+    $FileFullName2 = Join-Path -Path $storefolder2 -ChildPath $FileName2.Name()
+    $FileFullName23 = Join-Path -Path $storefolder2 -ChildPath $FileName23.Name()
+    $fake1 = Join-Path -Path $storefolder1 -ChildPath "Test1-andnomore.txt"
+    $fake2 = Join-Path -Path $storefolder2 -ChildPath "121212-fakename.txt"
+
+    "This content is fake" | Out-File -FilePath $FileFullName1
+    "This content is fake" | Out-File -FilePath $FileFullName13
+    "This content is fake" | Out-File -FilePath $FileFullName2
+    "This content is fake" | Out-File -FilePath $FileFullName23
+
+    "This content is fake" | Out-File -FilePath $fake1
+    "This content is fake" | Out-File -FilePath $fake2
+
+    "This content is fake" | Out-File -FilePath "122012-OtherOwner-Description.txt" 
+    "This content is fake" | Out-File -FilePath "122012-OtherOwner-Target-Description.txt" 
+
+    Assert-Count -Expected 8 -Presented (Get-ChildItem -File -Recurse)
+
+    $result = Get-DocsFile
+    
+    Assert-Count -Expected 2 -Presented $result
+    Assert-AreEqual -Expected "122012-OtherOwner-Description.txt" -Presented $result[0].Name
+    Assert-AreEqual -Expected "122012-OtherOwner-Target-Description.txt" -Presented $result[1].Name
+    
+    $result = Get-DocsFile -Recurse
+
+    Assert-Count -Expected 6 -Presented $result
+    Assert-AreEqual -Expected "122012-OtherOwner-Description.txt" -Presented $result[0].Name
+    Assert-AreEqual -Expected "122012-OtherOwner-Target-Description.txt" -Presented $result[1].Name
+    Assert-AreEqual -Expected $FileName2.Name() -Presented $result[2].Name
+    Assert-AreEqual -Expected $FileName23.Name() -Presented $result[3].Name
+    Assert-AreEqual -Expected $FileName1.Name() -Presented $result[4].Name
+    Assert-AreEqual -Expected $FileName13.Name() -Presented $result[5].Name
+}
+
+function DocsTest_GetFile_SpecificPath{
+
+    $storefolder1 = "." | Join-Path -ChildPath "Fakefolder1" -AdditionalChildPath "FakeStoreFolder1"
+
+    $null = New-Item -ItemType Directory -Path $storefolder1 -Force
+
+    $filename1  = Get-DocsFileName -Owner Test1 -Target Testing1 -Description "Test0 File1"  -Type test1 -Date 100101
+    $filename13 = Get-DocsFileName -Owner Test1 -Target Testing3 -Description "Test File13" -Type test1  -Date 110213
+    $localfile  = Get-DocsFileName -Owner Test2 -Target Testing2 -Description "Test0 File2"  -Type test1 -Date 100201
+
+    $FileFullName1 = Join-Path -Path $storefolder1 -ChildPath $FileName1.Name()
+    $FileFullName13 = Join-Path -Path $storefolder1 -ChildPath $FileName13.Name()
+
+    "This content is fake" | Out-File -FilePath $FileFullName1
+    "This content is fake" | Out-File -FilePath $FileFullName13
+    "This content is fake" | Out-File -FilePath $localfile.Name()
+
+    Assert-Count -Expected 3 -Presented (Get-ChildItem -File -Recurse)
+
+    $result = Get-DocsFile -Path $FileFullName1
+    
+    Assert-Count -Expected 1 -Presented $result
+    Assert-AreEqualPath -Expected $FileFullName1 -Presented $result[0].FullName
+    
+    $result = Get-DocsFile -Path $storefolder1
+
+    Assert-Count -Expected 2 -Presented $result
+    Assert-AreEqualPath -Expected $FileFullName1 -Presented $result[0].FullName
+    Assert-AreEqualPath -Expected $FileFullName13 -Presented $result[1].FullName
+
+    $result =  $storefolder1 | Get-DocsFile
+
+    Assert-Count -Expected 2 -Presented $result
+    Assert-AreEqualPath -Expected $FileFullName1 -Presented $result[0].FullName
+    Assert-AreEqualPath -Expected $FileFullName13 -Presented $result[1].FullName
+
+    $result =  ($storefolder1,$localfile.Name()) | Get-DocsFile 
+
+    Assert-Count -Expected 3 -Presented $result
+    Assert-AreEqualPath -Expected $FileFullName1 -Presented $result[0].FullName
+    Assert-AreEqualPath -Expected $FileFullName13 -Presented $result[1].FullName
+    Assert-AreEqualPath -Expected $localfile.Name() -Presented $result[2].FullName
+}
 
 function DocsTest_MoveFile {
     
@@ -688,6 +814,20 @@ function DocsTest_MoveFile_Path_Exists {
 
 }
 
+function DocsTest_MoveFile_Path_Exists_TheSame {
+    
+    $e = SetupScenario1
+
+    $result =  $e["FileFullName1"] | Move-DocsFile
+
+    Assert-AreEqual      -Expected "Test1"               -Presented $result[0].Owner; 
+    Assert-AreEqualPath  -Expected $e["filename1"]       -Presented $result[0].Name; 
+    Assert-AreEqualPath  -Expected "ARE_THE_SAME" -Presented $result[0].Status
+    Assert-AreEqualPath  -Expected $e["storefolder1"]    -Presented $result[0].Destination; 
+    Assert-ItemExist     -Path     $e["FileFullName1"]
+
+}
+
 function DocsTest_MoveFile_Path_Exists_ARE_EQUAL_Force {
     
     $e = SetupScenario2
@@ -734,7 +874,7 @@ function DocsTest_ConvertToDocName{
     #SetupScenario2
     #Get-DocNamePattern -Owner test2 | Get-Item | Convertto-docsdocName
 
-    $result = ConvertTo-DocsDocName -Path "121212-owner-target-32#32-What-Desc-dasd-asdasd-asddas.txt"  
+    $result = ConvertTo-DocsDocName -Path "121212-owner-target-What-32#32-Desc-dasd-asdasd-asddas.txt"  
     Assert-AreEqual -Expected "121212" -Presented $result.Date
     Assert-AreEqual -Expected "owner" -Presented $result.Owner
     Assert-AreEqual -Expected "target" -Presented $result.Target
@@ -968,10 +1108,10 @@ function SetupScenario1 () {
     $filename13 = Get-DocsFileName -Owner Test1 -Target Testing3 -Description "Test File13" -Type test1  -Date 110213
     $filename2  = Get-DocsFileName -Owner Test2 -Target Testing2 -Description "Test0 File2"  -Type test1 -Date 100201
     $filename23 = Get-DocsFileName -Owner Test2 -Target Testing3 -Description "Test0 File23" -Type test  -Date 110323
-    $Evidence["filename1"] = $filename1
-    $Evidence["filename13"] = $filename13
-    $Evidence["filename2"] = $filename2
-    $Evidence["filename23"] = $filename23
+    $Evidence["filename1"] = $filename1.Name()
+    $Evidence["filename13"] = $filename13.Name()
+    $Evidence["filename2"] = $filename2.Name()
+    $Evidence["filename23"] = $filename23.Name()
 
     $FileFullName1 = Join-Path -Path $storefolder1 -ChildPath $FileName1.Name()
     $FileFullName13 = Join-Path -Path $storefolder1 -ChildPath $FileName13.Name()
@@ -1002,6 +1142,8 @@ function SetupScenario1 () {
     Assert-Count -Expected 8 -Presented (Get-ChildItem -File -Recurse)
     
     Write-AssertionSectionEnd
+
+    $Evidence
 }
 
 function SetupScenario2 () {
