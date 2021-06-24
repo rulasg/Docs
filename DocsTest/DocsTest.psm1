@@ -766,6 +766,34 @@ function DocsTest_MoveFile_Path {
     
 }
 
+function DocsTest_MoveFile_Path_Recurse {
+    
+    $e = SetupScenario1
+    
+    $wrongFullName = Join-Path -Path $e["storefolder2"] -ChildPath $e["filename1"]
+    $e["FileFullName1"] | Move-Item -Destination $e["storefolder2"]
+    Assert-ItemExist     -Path     $wrongFullName
+    
+    $result = Move-DocsFile -Owner Test1 -Recurse
+    
+    Assert-Count         -Expected 2                    -Presented $result
+
+    Assert-ItemNotExist  -Path     $wrongFullName 
+    Assert-ItemExist     -Path     $e["FileFullName1"] 
+    
+    Assert-AreEqual      -Expected "Test1"              -Presented $result[0].Owner; 
+    Assert-AreEqualPath  -Expected $e["filename1"]      -Presented $result[0].Name; 
+    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[0].Status
+    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $result[0].Destination; 
+    Assert-ItemExist     -Path     $e["FileFullName1"]
+    
+    Assert-AreEqual      -Expected "Test1"              -Presented $result[1].Owner; 
+    Assert-AreEqualPath  -Expected $e["filename13"]      -Presented $result[1].Name; 
+    Assert-AreEqualPath  -Expected "ARE_THE_SAME"              -Presented $result[1].Status
+    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $result[1].Destination; 
+    Assert-ItemExist     -Path     $e["FileFullName13"]
+}
+
 function DocsTest_MoveFile_Path_WhatIf {
     
     $e = SetupScenario2

@@ -878,7 +878,8 @@ function Move-File {
             -Amount $Amount            `
             -What $What                `
             -Description $Description  `
-            -Type $Type 
+            -Type $Type                `
+            -Recurse:$Recurse
 
         foreach ($file in $files) {
             
