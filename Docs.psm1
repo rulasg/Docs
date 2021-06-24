@@ -14,7 +14,21 @@ CREATED: 05/26/2021
 
 Write-Host "Loading Docs ..." -ForegroundColor DarkCyan
 
+# Script Variables
 $script:StoresList = @()
+
+# Enums
+
+enum STATUS {
+    UNKNOWN
+    SUCCESS
+    MOVED
+    ARE_EQUAL
+    ARE_NOT_EQUAL
+    ARE_EQUAL_REMOVED_SOURCE
+    ARE_NOT_EQUAL_RENAME_SOURCE
+    FOLDER_NOT_FOUND
+} 
 
 # Classes
 class DocsStore {
@@ -71,7 +85,7 @@ class DocName {
         $des = [DocName]::Section($des)
         #t
 
-        $name = "$d$o$ta$am$w$des.$t"
+        $name = "$d$o$ta$w$am$des.$t"
 
         Write-Verbose -Message $name
 
@@ -99,31 +113,38 @@ class DocName {
 
         # Check date
         if (![DocName]::TestDate($this.Date)) {
+            "[DocName.IsValid] Date not valid [{0}]" -f $this.Date | Write-verbose
             return $false
         }
-
+        
         # Owner not empty
         if ([string]::IsNullOrWhiteSpace($this.Owner)) {
+            "[DocName.IsValid] Owner not valid [{0}]" -f $this.Owner | Write-verbose
             return $false
         }
-
+        
         # Description not empty
         if ([string]::IsNullOrWhiteSpace($this.Description)) {
+            "[DocName.IsValid] Description not valid [{0}]" -f $this.Description | Write-verbose
             return $false
         }
-
+        
         # What has not Amount format
         if (![string]::IsNullOrWhiteSpace($this.What)) 
         {
             if (([DocName]::TestAmmount($this.What,[DocName]::DECIMALSEPARATOR)) -or ([DocName]::TestAmmount($this.What,'.'))) 
             {
+                "[DocName.IsValid] What not valid [{0}]" -f $this.What | Write-verbose
                 return $false
             }
         }
-
+        
         # Amount with # as separator
-        if (![string]::IsNullOrWhiteSpace($this.Amount)) {
-            if (![DocName]::TestAmmount($this.Amount,[DocName]::DECIMALSEPARATOR)) {
+        if (![string]::IsNullOrWhiteSpace($this.Amount)) 
+        {
+            if (![DocName]::TestAmmount($this.Amount,[DocName]::DECIMALSEPARATOR)) 
+            {
+                "[DocName.IsValid] Amount not valid [{0}]" -f $this.Amount | Write-verbose
                 return $false
             }
         }
@@ -189,18 +210,18 @@ class DocName {
     static [bool] hidden TestAmmount([string] $Amount,[string] $decimalSeparator) {
         $ret = $Amount -match "^[1-9]\d*(\{0}\d+)?$" -f $decimalSeparator
 
-        if (!$ret) {
-            "Amount format is not correct [ {0}]" -f $Amount | Write-Verbose
-        }
+        # if (!$ret) {
+        #     "Amount format is not correct [ {0}]" -f $Amount | Write-Verbose
+        # }
 
         return $ret
     }
     static [bool] hidden TestDate([string] $Date) {
         $ret = $Date -match "^\d+$"
 
-        if (!$ret) {
-            "Date format is not correct [ {0}]" -f $Date | Write-Verbose
-        }
+        # if (!$ret) {
+        #     "Date format is not correct [ {0}]" -f $Date | Write-Verbose
+        # }
 
         return $ret
     }
@@ -274,6 +295,29 @@ function New-Store {
 
     return $o
 }
+
+function Find-Store{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)][string] $Owner
+    )
+    # Get Store by owner
+    $store = Get-Stores -Owner $Owner
+    
+    $status = [STATUS]::SUCCESS
+
+    if (!$store -or $store.Count -ne 1) {
+        $status = ($store.Count -eq 0 ? "OWNER_UNKNOWN" : "OWNER_STORE_UNCLEAR")
+        "{0} store {1} ..." -f $file.Name,$status | Write-Verbose
+        throw $Status
+    } 
+
+    if ($status -ne [STATUS]::SUCCESS) {
+        throw $status
+    }
+
+    return $store
+} Export-ModuleMember -Function Find-Store
 
 function Reset-StoresList {
     [CmdletBinding()]
@@ -696,22 +740,20 @@ function Get-File {
         # file name format
         $files = Get-ChildItem -Path $Path -Filter $Pattern -Recurse:$Recurse
 
-        if ($VerbosePreference) {
-            $all = Get-ChildItem -Path $Path -Recurse:$Recurse
-        }
-
         foreach ($file in $files) {
             $dn = [DocName]::ConvertToDocName($file)
 
             if ( ($dn)?.IsValid()) {
                 # Add to ret
                 $retFiles += $file
+            } else {
+                "File format not valid [{0}]" -f $file.Name | Write-Verbose
             }
         }
     }
     
     end {
-        "FilesToMove - Found [{0}] Valid [{1}]" -f $all.Length,$retFiles.Length | Write-Verbose
+        "FilesToMove - Found [{0}] Valid [{1}]" -f $files.Length,$retFiles.Length | Write-Verbose
         return $retFiles
     }
 } Export-ModuleMember -Function Get-File
@@ -886,7 +928,6 @@ function Move-File {
             # Get Owner from file
             $owner = ([DocName]::ConvertToDocName($file.Name)).Owner
 
-            
             # Move file to Store
 
             try {
@@ -972,8 +1013,12 @@ function Move-FileItem {
     )
     
     begin {
-        if ( -not (Test-Path $destination)) { 
+        # Destination
+
+        if ( -not (Test-Path $destination -PathType Container) -and $Force) { 
             New-Item -ItemType Directory -Path  $destination | Out-Null 
+        } else{
+            return [STATUS]::FOLDER_NOT_FOUND
         }
     }
     
@@ -988,7 +1033,7 @@ function Move-FileItem {
             if (!(Test-Path -Path $destinationPath)) {
 
                 $File | Move-Item -Destination $destinationPath -Confirm:$false
-                $Status = "MOVED"
+                $Status = [STATUS]::MOVED
             } 
             else {
                 #File Exists
@@ -998,12 +1043,12 @@ function Move-FileItem {
                 if ($hashSource.Hash -eq $hashDestination.Hash) {
 
                     #Files are equal                    
-                    if ($PSCmdlet.ShouldProcess("$File.Name", "ARE_EQUAL_REMOVED_SOURCE")) {
+                    if ($PSCmdlet.ShouldProcess("$File.Name", [STATUS]::ARE_EQUAL_REMOVED_SOURCE)) {
                         Remove-Item -Path $File
-                        $status = "ARE_EQUAL_REMOVED_SOURCE"
+                        $status = [STATUS]::ARE_EQUAL_REMOVED_SOURCE
                     }
                     else {
-                        $status = "ARE_EQUAL"
+                        $status = [STATUS]::ARE_EQUAL
                     }
                 }
                 else {
@@ -1012,10 +1057,10 @@ function Move-FileItem {
                         $newDestination = $Destination | Join-Path -ChildPath $newFilename
                         $File | Copy-Item -Destination $newDestination
                         $File | Remove-Item
-                        $status = "ARE_NOT_EQUAL_RENAME_SOURCE"
+                        $status = [STATUS]::ARE_NOT_EQUAL_RENAME_SOURCE
                     }
                     else {
-                        $status = "ARE_NOT_EQUAL"
+                        $status = [STATUS]::ARE_NOT_EQUAL
                     }
                 }
             }
@@ -1027,7 +1072,7 @@ function Move-FileItem {
     end {
         
     }
-}
+} Export-ModuleMember -Function Move-FileItem
 
 function GetFileCopyName([string] $Path) {
     $file = $Path | Get-Item 
@@ -1042,3 +1087,17 @@ function GetFileCopyName([string] $Path) {
 
     return $nameBase
 }
+
+function Format-MoveStatus {
+    [Alias("fms")]
+    param (
+    )
+    $input | Format-Table Name,Status
+} Export-ModuleMember -Function Format-MoveStatus -Alias "fms"
+
+function Format-Name{
+    [Alias("fname")]
+    param (
+    )
+    $input | ForEach-Object {$_.Name()}
+} Export-ModuleMember -Function Format-Name -Alias "fname"
