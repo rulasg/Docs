@@ -130,20 +130,16 @@ class DocName {
         }
         
         # What has not Amount format
-        if (![string]::IsNullOrWhiteSpace($this.What)) 
-        {
-            if (([DocName]::TestAmmount($this.What,[DocName]::DECIMALSEPARATOR)) -or ([DocName]::TestAmmount($this.What,'.'))) 
-            {
+        if (![string]::IsNullOrWhiteSpace($this.What)) {
+            if (([DocName]::TestAmmount($this.What, [DocName]::DECIMALSEPARATOR)) -or ([DocName]::TestAmmount($this.What, '.'))) {
                 "[DocName.IsValid] What not valid [{0}]" -f $this.What | Write-verbose
                 return $false
             }
         }
         
         # Amount with # as separator
-        if (![string]::IsNullOrWhiteSpace($this.Amount)) 
-        {
-            if (![DocName]::TestAmmount($this.Amount,[DocName]::DECIMALSEPARATOR)) 
-            {
+        if (![string]::IsNullOrWhiteSpace($this.Amount)) {
+            if (![DocName]::TestAmmount($this.Amount, [DocName]::DECIMALSEPARATOR)) {
                 "[DocName.IsValid] Amount not valid [{0}]" -f $this.Amount | Write-verbose
                 return $false
             }
@@ -202,12 +198,13 @@ class DocName {
 
         if ($doc.IsValid()) {
             return $doc
-        } else {
+        }
+        else {
             "DocName object not valid with given parameters" | Write-Error
             return $null
         }
     }
-    static [bool] hidden TestAmmount([string] $Amount,[string] $decimalSeparator) {
+    static [bool] hidden TestAmmount([string] $Amount, [string] $decimalSeparator) {
         $ret = $Amount -match "^[1-9]\d*(\{0}\d+)?$" -f $decimalSeparator
 
         # if (!$ret) {
@@ -227,7 +224,7 @@ class DocName {
     }
 }
 
-function Set-VerboseOn{
+function Set-VerboseOn {
     $VerbosePreference = Continue
 } Export-ModuleMember -Function Set-VerboseOn
 
@@ -254,11 +251,12 @@ function Add-Store {
     
     $o = New-Store -Owner $Owner -Path $Path -IsRecursive:$IsRecursive
 
-    "[Add-Store] {0} - {1}" -f $keyOwner,$o.Path | Write-Verbose
+    "[Add-Store] {0} - {1}" -f $keyOwner, $o.Path | Write-Verbose
 
     if ((Get-Owners) -contains $keyOwner) {
         $StoresList[$keyOwner] = $o
-    } else {
+    }
+    else {
         $StoresList.Add($Owner.ToLower(), $o)
     }
 
@@ -296,7 +294,7 @@ function New-Store {
     return $o
 }
 
-function Find-Store{
+function Find-Store {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)][string] $Owner
@@ -308,7 +306,7 @@ function Find-Store{
 
     if (!$store -or $store.Count -ne 1) {
         $status = ($store.Count -eq 0 ? "OWNER_UNKNOWN" : "OWNER_STORE_UNCLEAR")
-        "{0} store {1} ..." -f $file.Name,$status | Write-Verbose
+        "{0} store {1} ..." -f $file.Name, $status | Write-Verbose
         throw $Status
     } 
 
@@ -376,12 +374,12 @@ function Get-Stores {
 
 } Export-ModuleMember -Function Get-Stores -Alias "gs"
 
-function Set-LocationStore{
+function Set-LocationStore {
     [CmdletBinding()]
     [Alias("sl")]
 
     param (
-        [parameter(Mandatory,Position=1,ValueFromPipeline)]
+        [parameter(Mandatory, Position = 1, ValueFromPipeline)]
         [ArgumentCompletions(
             {
                 param($Command, $Parameter, $WordToComplete, $CommandAst, $FakeBoundParams)
@@ -398,9 +396,11 @@ function Set-LocationStore{
 
     if (!$location) {
         "Owner unknown" | Write-Error
-    } elseif (!$location.Exist) {
+    }
+    elseif (!$location.Exist) {
         "Locations does not exist" | Write-Error
-    } else{
+    }
+    else {
         $location | Set-Location
         Get-ChildItem
     }
@@ -415,7 +415,7 @@ function Get-Owners {
     if ([string]::IsNullOrWhiteSpace($Owner)) {
         $Owner = "*"
     }
-    $script:StoresList.Keys | Where-Object {$_ -like $Owner}
+    $script:StoresList.Keys | Where-Object { $_ -like $Owner }
     
 } Export-ModuleMember -Function Get-Owners -Alias "go"
 
@@ -437,12 +437,12 @@ function New-DocName {
 
     $dn = New-Object -TypeName DocName
 
-    $dn.Date        = ($Date)        ? $Date        : $DocName.Date
-    $dn.Owner       = ($Owner)       ? $Owner       : $DocName.Owner
-    $dn.Target      = ($Target)      ? $Target      : $DocName.Target
-    $dn.What        = ($What)        ? $What        : $DocName.What
-    $dn.Amount      = ($Amount)      ? $Amount      : $DocName.Amount
-    $dn.Type        = ($Type)        ? $Type        : $DocName.Type
+    $dn.Date = ($Date)        ? $Date        : $DocName.Date
+    $dn.Owner = ($Owner)       ? $Owner       : $DocName.Owner
+    $dn.Target = ($Target)      ? $Target      : $DocName.Target
+    $dn.What = ($What)        ? $What        : $DocName.What
+    $dn.Amount = ($Amount)      ? $Amount      : $DocName.Amount
+    $dn.Type = ($Type)        ? $Type        : $DocName.Type
     
     $dn.Description = ($Description) ? $Description : $DocName.Description
     $dn.Description = ($PreDescription) ? ("{0}_{1}" -f $PreDescription, $DocName.Description) : $dn.Description
@@ -506,7 +506,7 @@ function Get-FileName {
         [Parameter(ValueFromPipelineByPropertyName)][string]$Type
     )
 
-    process{
+    process {
 
         $dn = New-DocName      `
             -DocName $docName          `
@@ -520,10 +520,10 @@ function Get-FileName {
             -Type $Type 
             
         # Mandatory Default values
-        $dn.Date        = (![string]::IsNullOrWhiteSpace($dn.Date)) ? $dn.Date : (Get-Date -Format 'yyMMdd')
-        $dn.Owner       = (![string]::IsNullOrWhiteSpace($dn.Owner)) ? $dn.Owner : ([DocName]::DEFAULT_OWNER)
+        $dn.Date = (![string]::IsNullOrWhiteSpace($dn.Date)) ? $dn.Date : (Get-Date -Format 'yyMMdd')
+        $dn.Owner = (![string]::IsNullOrWhiteSpace($dn.Owner)) ? $dn.Owner : ([DocName]::DEFAULT_OWNER)
         $dn.Description = (![string]::IsNullOrWhiteSpace($dn.Description)) ? $dn.Description : ([DocName]::DEFAULT_DESCRIPTION)
-        $dn.Type        = (![string]::IsNullOrWhiteSpace($dn.Type)) ? $dn.Type : ([DocName]::DEFAULT_TYPE) 
+        $dn.Type = (![string]::IsNullOrWhiteSpace($dn.Type)) ? $dn.Type : ([DocName]::DEFAULT_TYPE) 
     
         if ($dn.IsValid()) {
             return $dn
@@ -562,7 +562,8 @@ function Test-File {
             # Does not exist or is a folder
             if ( $file | Test-Path -PathType Container) {
                 $ret = $false
-            } else {
+            }
+            else {
                 $ret = $file.Name | Test-FileName
             }
             $ret
@@ -570,7 +571,7 @@ function Test-File {
     }
 } Export-ModuleMember -Function Test-File
 
-function Test-FileName{
+function Test-FileName {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
@@ -578,7 +579,7 @@ function Test-FileName{
         [string] $FileName
     )
 
-    process{
+    process {
         $doc = [DocName]::ConvertToDocName($FileName)   
         $isValid = ($null -eq $doc) ?  $false : $doc.IsValid()
 
@@ -615,7 +616,7 @@ function Find-File {
         [Parameter( ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [Alias("PSPath")][ValidateNotNullOrEmpty()]
         [string[]] $Path,
-        [parameter(Position=0)][string]$Pattern,
+        [parameter(Position = 0)][string]$Pattern,
         [parameter(ValueFromPipelineByPropertyName)][string]$Description,
         [parameter(ValueFromPipelineByPropertyName)][string]$Date,
         [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
@@ -642,10 +643,14 @@ function Find-File {
 
     foreach ($store in $(Get-Stores -Exist)) {
         "Searching {0}..." -f ($store.Path | Join-Path -ChildPath $Pattern)  | Write-Verbose
-        $retFiles += Get-ChildItem -Path $store.Path -Filter $Pattern -Recurse:$store.IsRecursive
+        $files = Get-ChildItem -Path $store.Path -Filter $Pattern -Recurse:$store.IsRecursive 
+        foreach ($file in $files) {
+            if ($retFiles -notcontains $file.FullName) {
+                $retFiles += $file.FullName
+                $file
+            }
+        }
     }
-
-    return $retFiles
     
 } Export-ModuleMember -Function Find-File -Alias "f"
 
@@ -698,7 +703,7 @@ function Get-FileToMove {
     }
     
     end {
-        "FilesToMove - Found [{0}] Valid [{1}]" -f $all.Length,$retFiles.Length | Write-Verbose
+        "FilesToMove - Found [{0}] Valid [{1}]" -f $all.Length, $retFiles.Length | Write-Verbose
         return $retFiles
     }
 } Export-ModuleMember -Function Get-FileToMove
@@ -746,14 +751,15 @@ function Get-File {
             if ( ($dn)?.IsValid()) {
                 # Add to ret
                 $retFiles += $file
-            } else {
+            }
+            else {
                 "File format not valid [{0}]" -f $file.Name | Write-Verbose
             }
         }
     }
     
     end {
-        "FilesToMove - Found [{0}] Valid [{1}]" -f $files.Length,$retFiles.Length | Write-Verbose
+        "FilesToMove - Found [{0}] Valid [{1}]" -f $files.Length, $retFiles.Length | Write-Verbose
         return $retFiles
     }
 } Export-ModuleMember -Function Get-File
@@ -801,14 +807,14 @@ function Rename-File {
             $fileName = $docName.Name()
             
             if ($fileName -ne $newFileName) {
-                "{0} -> {1}" -f $fileName,$newFileName | Write-Verbose
+                "{0} -> {1}" -f $fileName, $newFileName | Write-Verbose
 
                 if ($PSCmdlet.ShouldProcess($File.Name, "Renamed")) {
                     $File | Rename-Item -NewName $newFileName -PassThru:$PassThru
                 }
             } 
             else {
-                "{0} =={1}" -f $fileName,$newFileName | Write-Verbose
+                "{0} =={1}" -f $fileName, $newFileName | Write-Verbose
             }
         }
     }
@@ -845,7 +851,7 @@ function ConvertTo-File {
             
             $docName = New-DocName
             $docName.Description = $file.BaseName
-            $docName.Type =  $file.Extension?.Substring(1)
+            $docName.Type = $file.Extension?.Substring(1)
 
             $NewDocFile = New-DocName            `
                 -DocName $docName                `
@@ -858,7 +864,7 @@ function ConvertTo-File {
                 -PreDescription $PreDescription  `
                 -Type $Type 
 
-            $NewDocFile.Description = $Description ? ("{0}-{1}" -f $Description,$file.BaseName) : $file.BaseName
+            $NewDocFile.Description = $Description ? ("{0}-{1}" -f $Description, $file.BaseName) : $file.BaseName
             
             $NewDocFile.Type = $file.Extension.Substring(1)
             
@@ -869,14 +875,16 @@ function ConvertTo-File {
                 
                 if ($PSCmdlet.ShouldProcess($File.Name, "Renamed")) {
                     $ret = $File | Rename-Item -NewName $newFileName -PassThru:$PassThru
-                } elseif ($WhatIfPreference) {
-                    "{0} -> {1}" -f $fileName,$newFileName | Write-Host
-                } else {
-                    "{0} -> {1}" -f $fileName,$newFileName | Write-Verbose
+                }
+                elseif ($WhatIfPreference) {
+                    "{0} -> {1}" -f $fileName, $newFileName | Write-Host
+                }
+                else {
+                    "{0} -> {1}" -f $fileName, $newFileName | Write-Verbose
                 }
             } 
             else {
-                "{0} =={1}" -f $fileName,$newFileName | Write-Verbose
+                "{0} =={1}" -f $fileName, $newFileName | Write-Verbose
             }
 
             # ONly with value if Passthru
@@ -937,9 +945,9 @@ function Move-File {
                 if ($store.Count -ne 1) {
                     $status = ($store.Count -eq 0 ? "Unknown" : "Unclear")
                     $destination = [string]::Empty
-                    "{0} store {1} ..." -f $file.Name,$status | Write-Verbose
+                    "{0} store {1} ..." -f $file.Name, $status | Write-Verbose
                 } 
-                else{
+                else {
                     
                     $destination = $Store.Path 
         
@@ -950,10 +958,12 @@ function Move-File {
 
                         $File | Move-Item -Destination $destinationPath -Confirm:$false
                         $Status = "MOVED"
-                    } elseif (($file | convert-Path) -eq ($destinationPath | Convert-Path) ) {
+                    }
+                    elseif (($file | convert-Path) -eq ($destinationPath | Convert-Path) ) {
                         # Is the same file. Found in the store
                         $status = "ARE_THE_SAME"
-                    } else {
+                    }
+                    else {
                         #File Exists
         
                         $hashSource = Get-FileHash -Path $File
@@ -973,7 +983,8 @@ function Move-File {
                             
                             if ($PSCmdlet.ShouldProcess("$File.Name", "Not Equal. Do not copy") -and !$Force) {
                                 $status = "ARE_NOT_EQUAL"
-                            } else {
+                            }
+                            else {
                                 $newFilename = GetFileCopyName($File)
                                 $newDestination = $Destination | Join-Path -ChildPath $newFilename
                                 $File | Copy-Item -Destination $newDestination
@@ -1013,17 +1024,23 @@ function Move-FileItem {
     )
     
     begin {
-        # Destination
 
-        if ( -not (Test-Path $destination -PathType Container) -and $Force) { 
-            New-Item -ItemType Directory -Path  $destination | Out-Null 
-        } else{
-            return [STATUS]::FOLDER_NOT_FOUND
-        }
     }
     
     process {
-        
+        # Destination
+
+        if ( -not (Test-Path $destination -PathType Container )) {
+            if ($Force) 
+            {
+                New-Item -ItemType Directory -Path  $destination | Out-Null 
+            } 
+            else 
+            {
+                return [STATUS]::FOLDER_NOT_FOUND
+            }
+        }
+                
         $Files = Get-ChildItem -Path $Path -File
 
         foreach ($File in $Files) {
@@ -1092,12 +1109,12 @@ function Format-MoveStatus {
     [Alias("fms")]
     param (
     )
-    $input | Format-Table Name,Status
+    $input | Format-Table Name, Status
 } Export-ModuleMember -Function Format-MoveStatus -Alias "fms"
 
-function Format-Name{
+function Format-Name {
     [Alias("fname")]
     param (
     )
-    $input | ForEach-Object {$_.Name()}
+    $input | ForEach-Object { $_.Name() }
 } Export-ModuleMember -Function Format-Name -Alias "fname"
