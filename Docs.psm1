@@ -508,8 +508,7 @@ function Get-FileName {
 
     process {
 
-        $dn = New-DocName      `
-            -DocName $docName          `
+        $dn = New-DocName              `
             -Date $Date                `
             -Owner $Owner              `
             -Target $Target            `
@@ -829,7 +828,7 @@ function ConvertTo-File {
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [Alias("PSPath")] [string[]] $Path,
         [parameter(ValueFromPipelineByPropertyName)][string]$Description,
-        [parameter(ValueFromPipelineByPropertyName)][string]$PreDescription,
+        # [parameter(ValueFromPipelineByPropertyName)][string]$PreDescription,
         [parameter(ValueFromPipelineByPropertyName)][string]$Date,
         [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
         [parameter(ValueFromPipelineByPropertyName)][string]$Target,
@@ -860,13 +859,13 @@ function ConvertTo-File {
                 -Target $Target                  `
                 -Amount $Amount                  `
                 -What $What                      `
-                -Description $Description        `
-                -PreDescription $PreDescription  `
+                -PreDescription $Description  `
                 -Type $Type 
+                # -Description $Description        `
 
-            $NewDocFile.Description = $Description ? ("{0}-{1}" -f $Description, $file.BaseName) : $file.BaseName
+            # $NewDocFile.Description = $Description ? ("{0}_{1}" -f $Description, $file.BaseName) : $file.BaseName
             
-            $NewDocFile.Type = $file.Extension.Substring(1)
+            # $NewDocFile.Type = $file.Extension.Substring(1)
             
             $newFileName = $NewDocFile.Name()
             $fileName = $File.Name
@@ -877,7 +876,7 @@ function ConvertTo-File {
                     $ret = $File | Rename-Item -NewName $newFileName -PassThru:$PassThru
                 }
                 elseif ($WhatIfPreference) {
-                    "{0} -> {1}" -f $fileName, $newFileName | Write-Host
+                    "{0} -> {1}" -f $fileName, $newFileName | Write-Warning
                 }
                 else {
                     "{0} -> {1}" -f $fileName, $newFileName | Write-Verbose

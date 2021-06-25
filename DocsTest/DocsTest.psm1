@@ -1099,7 +1099,7 @@ function DocsTest_RenameFile_Pipe_String{
 function DocsTest_ConverToFile_SingleFile {
     
     $fileName = "filename1.txt"
-    $newName = "121212-kk-SomeDescription-filename1.txt"
+    $newName = "121212-kk-SomeDescription_filename1.txt"
 
     "This content is fake" | Out-File -FilePath $fileName 
 
