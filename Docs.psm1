@@ -63,13 +63,13 @@ class DocName {
 
     #ctor
     DocName() {
-        $this.Date        = [string]::Empty
-        $this.Owner       = [string]::Empty
-        $this.Target      = [string]::Empty
-        $this.What        = [string]::Empty
-        $this.Amount      = [string]::Empty
+        $this.Date = [string]::Empty
+        $this.Owner = [string]::Empty
+        $this.Target = [string]::Empty
+        $this.What = [string]::Empty
+        $this.Amount = [string]::Empty
         $this.Description = [string]::Empty
-        $this.Type        = [string]::Empty
+        $this.Type = [string]::Empty
     }
 
     # Interna Functions
@@ -87,7 +87,16 @@ class DocName {
         if ($this.Date) { $d = $this.Date } else { $d = Get-Date -Format 'yyMMdd' }
         if ($this.Owner) { $o = $this.Owner } else { $o = [DocName]::DEFAULT_OWNER }
         if ($this.Type) { $t = $this.Type } else { $t = [DocName]::DEFAULT_TYPE }
-        if ($this.Description) { $des = $this.Description.Replace(' ', '_') } else { $des = [DocName]::DEFAULT_DESCRIPTION }
+        if ($this.Description) { 
+            $des = $this.Description
+            $des = $this.Description.Replace(' ', '_') 
+            $des = $this.Description.Replace('-', '_') 
+            $des = $this.Description.Replace('[', '_') 
+            $des = $this.Description.Replace(']', '_') 
+        } 
+        else {
+            $des = [DocName]::DEFAULT_DESCRIPTION
+        }
     
         #d
         $o = [DocName]::Section($o)
@@ -189,11 +198,11 @@ class DocName {
                 $doc.Owner = $splitted[1]
                 $h2 = $splitted[2]
             }
-            2{
+            2 {
                 $doc.Date = $splitted[0]
                 $h2 = $splitted[1]
             }
-            1{
+            1 {
                 $doc.Date = $splitted[0]
                 $h2 = $null
             }
@@ -208,17 +217,19 @@ class DocName {
                 $doc.Target = $secondSplit[0]
                 
                 # Check if 1 is correct amount and log it to amount
-                if ([docname]::TestAmmount($secondSplit[1],[DocName]::DECIMALSEPARATOR)) {
+                if ([docname]::TestAmmount($secondSplit[1], [DocName]::DECIMALSEPARATOR)) {
                     $doc.Amount = $secondSplit[1]
                     $doc.What = $secondSplit[2]
                     $doc.Description = $secondSplit[3]
-                } else {
+                }
+                else {
                     $doc.What = $secondSplit[1]
                     # check if 2 is correct amound and log or move it to description
-                    if ([docname]::TestAmmount($secondSplit[2],[DocName]::DECIMALSEPARATOR)) {
+                    if ([docname]::TestAmmount($secondSplit[2], [DocName]::DECIMALSEPARATOR)) {
                         $doc.Amount = $secondSplit[2]
                         $doc.Description = $secondSplit[3]
-                    } else {
+                    }
+                    else {
                         $doc.Description = $secondSplit[2] + [DocName]::SPLITTER + $secondSplit[3]
                     }
                 }
@@ -228,9 +239,10 @@ class DocName {
                 $doc.Target = $secondSplit[0]
 
                 # If amount correct log it, if not What
-                if ([docname]::TestAmmount($secondSplit[1],[DocName]::DECIMALSEPARATOR)) {
+                if ([docname]::TestAmmount($secondSplit[1], [DocName]::DECIMALSEPARATOR)) {
                     $doc.Amount = $secondSplit[1]
-                } else {
+                }
+                else {
                     $doc.What = $secondSplit[1]
                 }
 
@@ -429,13 +441,11 @@ function Set-LocationStore {
 
     param (
         [parameter(Mandatory, Position = 1, ValueFromPipeline)]
-        [ArgumentCompletions(
-            {
+        [ArgumentCompletions( {
                 param($Command, $Parameter, $WordToComplete, $CommandAst, $FakeBoundParams)
                 Get-Owners -Owner $Owner
             })]
-        [ValidateScript(
-            {
+        [ValidateScript( {
                 $_ -in (Get-Owners)
             }
         )]
@@ -777,7 +787,7 @@ function Get-File {
             -Type $Type 
 
         # file name format
-        $files = Get-ChildItem -Path $Path -Filter $Pattern -Recurse:$Recurse
+        $files = Get-ChildItem -Path $Path -Filter $Pattern -Recurse:$Recurse -File
 
         foreach ($file in $files) {
             $dn = ConvertTo-DocName -Path $file
@@ -838,7 +848,7 @@ function Rename-File {
             
             if ($fileName -ne $newFileName) {
                 
-                if ($PSCmdlet.ShouldProcess($File.Name, "Renamed")) {
+                if ($PSCmdlet.ShouldProcess($File.Name, ("Renaming to {0}" -f $newFileName))) {
                     $ret = $File | Rename-Item -NewName $newFileName -PassThru:$PassThru
                 }
                 elseif ($WhatIfPreference) {
@@ -988,12 +998,10 @@ function Move-FileItem {
         # Destination
 
         if ( -not (Test-Path $destination -PathType Container )) {
-            if ($Force) 
-            {
+            if ($Force) {
                 New-Item -ItemType Directory -Path  $destination | Out-Null 
             } 
-            else 
-            {
+            else {
                 return [STATUS]::FOLDER_NOT_FOUND
             }
         }
