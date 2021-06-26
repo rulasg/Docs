@@ -1042,6 +1042,8 @@ function DocsTest_ConvertToDocName{
 function DocsTest_RenameFile_WrongFile{
 
     $oldName = "desc3.txt"
+    $newName = "{0}-kk-desc3.txt" -f (Get-TodayDateReverse)
+
     "This content is fake" | Out-File -FilePath $oldName
 
     # Single file 
@@ -1050,7 +1052,9 @@ function DocsTest_RenameFile_WrongFile{
     Assert-ItemExist    -Path $oldName
     
     Rename-DocsFile -Path $oldName -Owner kk
-    Assert-ItemExist    -Path $oldName
+
+    Assert-ItemNotExist    -Path $oldName
+    Assert-ItemExist    -Path $newName
     Assert-Count -Expected 1 -Presented (Get-ChildItem)
 }
 function DocsTest_RenameFile_SingleFile{
@@ -1151,7 +1155,7 @@ function DocsTest_RenameFile_Pipe_String{
     Assert-Count -Expected 3 -Presented (Get-ChildItem)
 }
 
-function DocsTest_ConverToFile_SingleFile {
+function DocsTest_ConvertToFile_SingleFile {
     
     $fileName = "filename1.txt"
     $newName = "121212-kk-SomeDescription_filename1.txt"
@@ -1175,7 +1179,7 @@ function DocsTest_ConverToFile_SingleFile {
     Assert-ItemExist -Path $newName
 }
 
-function DocsTest_ConverToFile_WildChar{
+function DocsTest_ConvertToFile_WildChar{
 
     $oldName1 = "Desc112.txt"
     $oldName2 = "Desc122.pdf"
@@ -1193,10 +1197,29 @@ function DocsTest_ConverToFile_WildChar{
     Assert-ItemExist    -Path $newName2
     Assert-ItemExist    -Path $newName3
     Assert-Count -Expected 3 -Presented (Get-ChildItem)
-
 }
 
-function DocsTest_ConverToFile_Pipe_Files{
+function DocsTest_ConvertToFile_WildChar_WithDescription{
+    $Today = Get-TodayDateReverse
+    $oldName1 = "Desc112.txt"
+    $oldName2 = "Desc122.pdf"
+    $oldName3 = "Desc132.txt"
+    $newName1 = $Today + "-kk-PreToAd_Desc112.txt"
+    $newName2 = $Today + "-kk-PreToAd_Desc122.pdf"
+    $newName3 = $Today + "-kk-PreToAd_Desc132.txt"
+    "This content is fake" | Out-File -FilePath $oldName1
+    "This content is fake" | Out-File -FilePath $oldName2
+    "This content is fake" | Out-File -FilePath $oldName3
+
+    # Single file 
+    ConvertTo-DocsFile -Path "Desc1*" -Owner kk -Date $Today -Description "PreToAd"
+    Assert-ItemExist    -Path $newName1
+    Assert-ItemExist    -Path $newName2
+    Assert-ItemExist    -Path $newName3
+    Assert-Count -Expected 3 -Presented (Get-ChildItem)
+
+}
+function DocsTest_ConvertToFile_Pipe_Files{
 
 
     $oldName1 = "12Desk1.txt"
@@ -1222,7 +1245,7 @@ function DocsTest_ConverToFile_Pipe_Files{
 
 }
 
-function DocsTest_ConverToFile_Pipe_String{
+function DocsTest_ConvertToFile_Pipe_String{
 
     $oldName1 = "12Desk1.txt"
     $oldName2 = "132012-OtherOwner-Description.txt"

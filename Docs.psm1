@@ -93,7 +93,7 @@ class DocName {
 
         $name = "$d$o$ta$w$am$des.$t"
 
-        Write-Verbose -Message $name
+        "[DocName]::Name | {0}" -f $name | Write-Verbose
 
         return $name
     }
@@ -492,21 +492,6 @@ function New-DocName {
     $dn.Description = ($Description) ? $Description : $DocName.Description
     $dn.Description = ($PreDescription) ? ("{0}_{1}" -f $PreDescription, $DocName.Description) : $dn.Description
 
-    # $dn.Date = $Date
-    # $dn.Owner = $Owner
-    # $dn.Amount = $Amount
-    # $dn.Target = $Target
-    # $dn.What = $What
-    # $dn.Description = $Description
-    # $dn.Type = $Type
-
-    # if ($dn.IsValid()) {
-    #     return $dn
-    # } else {
-    #     "DocName object not valid with given parameters" | Write-Error
-    #     return $null
-    # }
-    
     return $dn
 }
 
@@ -633,11 +618,18 @@ function Test-FileName {
 }Export-ModuleMember -Function Test-FileName
 
 function ConvertTo-DocName {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     Param(
-        [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
-        [Alias("PSPath")][ValidateNotNullOrEmpty()]
-        [string[]] $Path
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Alias("PSPath")] [string[]] $Path,
+        [parameter()][string]$Description,
+        [parameter()][string]$Date,
+        [parameter()][string]$Owner,
+        [parameter()][string]$Target,
+        [parameter()][string]$Amount,
+        [parameter()][string]$What,
+        [parameter()][string]$Type,
+        [parameter()][switch]$PassThru
     )
         
     process {
@@ -815,14 +807,10 @@ function Rename-File {
         [parameter()][switch]$PassThru
     )
 
-    begin {
-
-    }
-
     process {
 
         #Path 
-        $files = Get-File -Path $Path         
+        $files = Get-ChildItem -Path $Path         
         
         foreach ($File in $Files) {
             
@@ -842,19 +830,24 @@ function Rename-File {
             $fileName = $docName.Name()
             
             if ($fileName -ne $newFileName) {
-                "{0} -> {1}" -f $fileName, $newFileName | Write-Verbose
-
+                
                 if ($PSCmdlet.ShouldProcess($File.Name, "Renamed")) {
-                    $File | Rename-Item -NewName $newFileName -PassThru:$PassThru
+                    $ret = $File | Rename-Item -NewName $newFileName -PassThru:$PassThru
+                }
+                elseif ($WhatIfPreference) {
+                    "[ConvertTo-File] | {0} -> {1}" -f $fileName, $newFileName | Write-Verbose
+                }
+                else {
+                    "[ConvertTo-File] | {0} -> {1}" -f $fileName, $newFileName | Write-Warning
                 }
             } 
             else {
-                "{0} =={1}" -f $fileName, $newFileName | Write-Verbose
+                "[ConvertTo-File] | {0} == {1}" -f $fileName, $newFileName | Write-Verbose
             }
-        }
-    }
 
-    end {
+            # Only if rename is called with Passthru
+            $ret
+        }
     }
 } Export-ModuleMember -Function Rename-File
 
@@ -863,30 +856,24 @@ function ConvertTo-File {
     Param(
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [Alias("PSPath")] [string[]] $Path,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Description,
-        # [parameter(ValueFromPipelineByPropertyName)][string]$PreDescription,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Date,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Target,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
-        [parameter(ValueFromPipelineByPropertyName)][string]$What,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Type,
+        [parameter()][string]$Description,
+        [parameter()][string]$Date,
+        [parameter()][string]$Owner,
+        [parameter()][string]$Target,
+        [parameter()][string]$Amount,
+        [parameter()][string]$What,
+        [parameter()][string]$Type,
         [parameter()][switch]$PassThru
     )
-
-    begin {
-    }
 
     process {
 
         #Path 
         $files = Get-ChildItem -Path $Path
 
-        foreach ($File in $Files) {
+        foreach ($file in $Files) {
             
-            $docName = New-DocName
-            $docName.Description = $file.BaseName
-            $docName.Type = $file.Extension?.Substring(1)
+            $docName = ConvertTo-DocName -Path $file
 
             $NewDocFile = New-DocName            `
                 -DocName $docName                `
@@ -897,11 +884,6 @@ function ConvertTo-File {
                 -What $What                      `
                 -PreDescription $Description  `
                 -Type $Type 
-                # -Description $Description        `
-
-            # $NewDocFile.Description = $Description ? ("{0}_{1}" -f $Description, $file.BaseName) : $file.BaseName
-            
-            # $NewDocFile.Type = $file.Extension.Substring(1)
             
             $newFileName = $NewDocFile.Name()
             $fileName = $File.Name
@@ -912,17 +894,17 @@ function ConvertTo-File {
                     $ret = $File | Rename-Item -NewName $newFileName -PassThru:$PassThru
                 }
                 elseif ($WhatIfPreference) {
-                    "{0} -> {1}" -f $fileName, $newFileName | Write-Warning
+                    "[ConvertTo-File] | {0} -> {1}" -f $fileName, $newFileName | Write-Warning
                 }
                 else {
-                    "{0} -> {1}" -f $fileName, $newFileName | Write-Verbose
+                    "[ConvertTo-File] | {0} -> {1}" -f $fileName, $newFileName | Write-Verbose
                 }
             } 
             else {
-                "{0} =={1}" -f $fileName, $newFileName | Write-Verbose
+                "[ConvertTo-File] | {0} == {1}" -f $fileName, $newFileName | Write-Verbose
             }
 
-            # ONly with value if Passthru
+            # Only if rename is called with Passthru
             $ret
         }
     }
