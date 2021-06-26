@@ -41,7 +41,7 @@ class DocsStore {
 }
 
 class DocName {
-    static [string] $SPLITTER = '-'
+    static [string] $SPLITTER = "-"
     static [string] $DEFAULT_OWNER = "rulasg"
     static [string] $DEFAULT_TYPE = "pdf"
     static [string] $DEFAULT_DESCRIPTION = "DESCRIPTION"
@@ -57,7 +57,13 @@ class DocName {
 
     #ctor
     DocName() {
+        $this.Date        = [string]::Empty
+        $this.Owner       = [string]::Empty
+        $this.Target      = [string]::Empty
+        $this.What        = [string]::Empty
+        $this.Amount      = [string]::Empty
         $this.Description = [string]::Empty
+        $this.Type        = [string]::Empty
     }
 
     # Interna Functions
@@ -153,58 +159,97 @@ class DocName {
         return ("{0}-{1}-{2}-{3}-{4}-{5}.{6}" -f "date", "owner", "target", "what", "amount", "desc", "type")
     }
 
-    static [DocName] ConvertToDocName([string]$Path) {
+    static [DocName] Convert([string]$Path) {
 
         $doc = [DocName]::new()
 
-        $fileName = $Path | Split-Path -Leaf
-        
-        # Mandatory
-        
-        $splitted = $fileName -split [DocName]::SPLITTER, 3
-        if ($splitted.Count -ne 3) {
-            return $null
-        }
-        $doc.Date = $splitted[0]
-        $doc.Owner = $splitted[1]
+        #Extension
+        $ext = $Path | Split-Path -Extension
+        $doc.Type = [string]::IsNullOrWhiteSpace($ext) ? $null : $ext.Substring(1)
 
-        # Look for the extension
-        $doc.Type = ($splitted[2] | Split-Path -Extension) -replace '\.', ''
+        $fileName = $Path | Split-Path -LeafBase
+        
+        # Check Date - Add empty date if not valid
+        $splitted = $fileName -split [DocName]::SPLITTER, 2
+        if (![docname]::TestDate($splitted[0])) {
+            $fileName = [DocName]::SPLITTER + $fileName
+        }   
+
+        $splitted = $fileName -split [DocName]::SPLITTER, 3
+        $h2 = $null
+        switch ($splitted.Count) {
+            3 {
+                $doc.Date = $splitted[0]
+                $doc.Owner = $splitted[1]
+                $h2 = $splitted[2]
+            }
+            2{
+                $doc.Date = $splitted[0]
+                $h2 = $splitted[1]
+            }
+            1{
+                $doc.Date = $splitted[0]
+                $h2 = $null
+            }
+
+        }
         
         # Second split
-        $secondSplit = ($splitted[2] | Split-Path -LeafBase) -split [DocName]::SPLITTER, 4
+        $secondSplit = $h2 -split [DocName]::SPLITTER, 4
 
         switch ($secondSplit.Count) {
             4 { 
                 $doc.Target = $secondSplit[0]
-                $doc.What = $secondSplit[1]
-                $doc.Amount = $secondSplit[2]
-                $doc.Description = $secondSplit[3]
+                
+                # Check if 1 is correct amount and log it to amount
+                if ([docname]::TestAmmount($secondSplit[1],[DocName]::DECIMALSEPARATOR)) {
+                    $doc.Amount = $secondSplit[1]
+                    $doc.What = $secondSplit[2]
+                    $doc.Description = $secondSplit[3]
+                } else {
+                    $doc.What = $secondSplit[1]
+                    # check if 2 is correct amound and log or move it to description
+                    if ([docname]::TestAmmount($secondSplit[2],[DocName]::DECIMALSEPARATOR)) {
+                        $doc.Amount = $secondSplit[2]
+                        $doc.Description = $secondSplit[3]
+                    } else {
+                        $doc.Description = $secondSplit[2] + [DocName]::SPLITTER + $secondSplit[3]
+                    }
+                }
             }
             3 {
                 # Ammount before What
                 $doc.Target = $secondSplit[0]
-                $doc.What = $secondSplit[1]
+
+                # If amount correct log it, if not What
+                if ([docname]::TestAmmount($secondSplit[1],[DocName]::DECIMALSEPARATOR)) {
+                    $doc.Amount = $secondSplit[1]
+                } else {
+                    $doc.What = $secondSplit[1]
+                }
+
                 $doc.Description = $secondSplit[2]
             }
             2 {
                 $doc.Target = $secondSplit[0]
                 $doc.Description = $secondSplit[1]
             }
-            Default {
+            1 {
                 $doc.Description = $secondSplit[0]
             }
         }
 
-        if ($doc.IsValid()) {
-            return $doc
-        }
-        else {
-            "DocName object not valid with given parameters" | Write-Error
-            return $null
-        }
+        return $doc
+        
+        # if ($doc.IsValid()) {
+        #     return $doc
+        # }
+        # else {
+        #     "DocName object not valid with given parameters" | Write-Error
+        #     return $null
+        # }
     }
-    static [bool] hidden TestAmmount([string] $Amount, [string] $decimalSeparator) {
+    static [bool] hidden TestAmmount([string] $Amount, [string] $decimalSeparator = [DocName]::DECIMALSEPARATOR) {
         $ret = $Amount -match "^[1-9]\d*(\{0}\d+)?$" -f $decimalSeparator
 
         # if (!$ret) {
@@ -525,7 +570,7 @@ function Get-FileName {
         $dn.Type = (![string]::IsNullOrWhiteSpace($dn.Type)) ? $dn.Type : ([DocName]::DEFAULT_TYPE) 
     
         if ($dn.IsValid()) {
-            return $dn
+            return $dn.Name()
         }
         
         # "[Get-FileName] Error" | Write-Error
@@ -579,10 +624,11 @@ function Test-FileName {
     )
 
     process {
-        $doc = [DocName]::ConvertToDocName($FileName)   
-        $isValid = ($null -eq $doc) ?  $false : $doc.IsValid()
+        $doc = ConvertTo-DocName -Path $FileName  
 
-        $isValid
+        $isValid = $doc.IsValid()
+
+        return $isValid
     }
 }Export-ModuleMember -Function Test-FileName
 
@@ -593,29 +639,19 @@ function ConvertTo-DocName {
         [Alias("PSPath")][ValidateNotNullOrEmpty()]
         [string[]] $Path
     )
-    
-    begin {
         
-    }
-    
     process {
         $filenName = $Path | Split-Path -Leaf
-        [DocName]::ConvertToDocName($filenName)
+        [DocName]::Convert($filenName)
     }
     
-    end {
-        
-    }
 } Export-ModuleMember -Function ConvertTo-DocName
 
 function Find-File {
     [CmdletBinding()]
     [Alias("f")]
     Param(
-        [Parameter( ValueFromPipeline, ValueFromPipelineByPropertyName)]
-        [Alias("PSPath")][ValidateNotNullOrEmpty()]
-        [string[]] $Path,
-        [parameter(Position = 0)][string]$Pattern,
+        [parameter(ValueFromPipeline, Position = 0)][string]$Pattern,
         [parameter(ValueFromPipelineByPropertyName)][string]$Description,
         [parameter(ValueFromPipelineByPropertyName)][string]$Date,
         [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
@@ -745,7 +781,7 @@ function Get-File {
         $files = Get-ChildItem -Path $Path -Filter $Pattern -Recurse:$Recurse
 
         foreach ($file in $files) {
-            $dn = [DocName]::ConvertToDocName($file)
+            $dn = ConvertTo-DocName -Path $file
 
             if ( ($dn)?.IsValid()) {
                 # Add to ret
@@ -933,7 +969,7 @@ function Move-File {
         foreach ($file in $files) {
             
             # Get Owner from file
-            $owner = ([DocName]::ConvertToDocName($file.Name)).Owner
+            $owner = (ConvertTo-DocName -Path $file).Owner
 
             # Move file to Store
 
