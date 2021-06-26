@@ -734,54 +734,67 @@ function DocsTest_MoveFile {
     
     $e = SetupScenario2
 
+    $otherStoreFolder = ("." | Join-Path -ChildPath "FolderNotExist" )
+    Add-DocsStore -Owner "LocalOwner" -Path $otherStoreFolder
+    $filename  = Get-DocsFileName -Owner "LocalOwner" -Target Testing1 -Description "Test0 File1"  -Type test1 -Date 100101
+    "This content is fake" | Out-File -FilePath $FileName
+
     Assert-ItemExist     -Path     $e["filename1"]
     Assert-ItemExist     -Path     $e["filename2"]
     Assert-ItemExist     -Path     $e["filename13"]
     Assert-ItemExist     -Path     $e["filename23"]
+    Assert-ItemExist     -Path     $filename
 
     $result = Move-DocsFile 
 
-    Assert-Count -Expected 6 -Presented $result
+    Assert-Count -Expected 7 -Presented $result
 
     Assert-ItemNotExist     -Path     $e["filename1"]
     Assert-ItemNotExist     -Path     $e["filename2"]
     Assert-ItemNotExist     -Path     $e["filename13"]
     Assert-ItemNotExist     -Path     $e["filename23"]
+    Assert-ItemNotExist     -Path     $otherStoreFolder
 
-    Assert-AreEqual      -Expected "Test1"              -Presented $result[0].Owner; 
-    Assert-AreEqualPath  -Expected $e["filename1"]      -Presented $result[0].Name; 
-    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[0].Status
-    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $result[0].Destination; 
+    Assert-AreEqual      -Expected "LocalOwner"         -Presented $result[0].Owner; 
+    Assert-AreEqualPath  -Expected $filename            -Presented $result[0].Name;
+    Assert-AreEqualPath  -Expected "FOLDER_NOT_FOUND" -Presented $result[0].Status 
+    Assert-AreEqualPath  -Expected ""                   -Presented $result[0].Destination; 
+    Assert-ItemExist     -Path $filename
+
+    Assert-AreEqual      -Expected "Test1"              -Presented $result[1].Owner; 
+    Assert-AreEqualPath  -Expected $e["filename1"]      -Presented $result[1].Name; 
+    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[1].Status
+    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $result[1].Destination; 
     Assert-ItemExist     -Path     $e["FileFullName1"]
     
-    Assert-AreEqual      -Expected "Test2"              -Presented $result[1].Owner; 
-    Assert-AreEqualPath  -Expected $e["filename2"]      -Presented $result[1].Name; 
-    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[1].Status
-    Assert-AreEqualPath  -Expected $e["storefolder2"]   -Presented $result[1].Destination; 
+    Assert-AreEqual      -Expected "Test2"              -Presented $result[2].Owner; 
+    Assert-AreEqualPath  -Expected $e["filename2"]      -Presented $result[2].Name; 
+    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[2].Status
+    Assert-AreEqualPath  -Expected $e["storefolder2"]   -Presented $result[2].Destination; 
     Assert-ItemExist     -Path     $e["FileFullName2"]
     
-    Assert-AreEqual      -Expected "Test1"              -Presented $result[2].Owner; 
-    Assert-AreEqualPath  -Expected $e["filename13"]     -Presented $result[2].Name;
-    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[2].Status 
-    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $result[2].Destination; 
+    Assert-AreEqual      -Expected "Test1"              -Presented $result[3].Owner; 
+    Assert-AreEqualPath  -Expected $e["filename13"]     -Presented $result[3].Name;
+    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[3].Status 
+    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $result[3].Destination; 
     Assert-ItemExist     -Path     $e["FileFullName13"]
     
-    Assert-AreEqual      -Expected "Test2"              -Presented $result[3].Owner; 
-    Assert-AreEqualPath  -Expected $e["filename23"]     -Presented $result[3].Name;
-    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[3].Status 
-    Assert-AreEqualPath  -Expected $e["storefolder2"]   -Presented $result[3].Destination; 
+    Assert-AreEqual      -Expected "Test2"              -Presented $result[4].Owner; 
+    Assert-AreEqualPath  -Expected $e["filename23"]     -Presented $result[4].Name;
+    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[4].Status 
+    Assert-AreEqualPath  -Expected $e["storefolder2"]   -Presented $result[4].Destination; 
     Assert-ItemExist     -Path     $e["FileFullName23"]
 
-    Assert-AreEqual      -Expected "OtherOwner"         -Presented $result[4].Owner; 
-    Assert-AreEqualPath  -Expected $e["FileNameLocal_OtherOWner1"] -Presented $result[4].Name;
-    Assert-AreEqualPath  -Expected "Unknown"            -Presented $result[4].Status 
-    Assert-AreEqualPath  -Expected ""                   -Presented $result[4].Destination; 
+    Assert-AreEqual      -Expected "OtherOwner"                    -Presented $result[5].Owner; 
+    Assert-AreEqualPath  -Expected $e["FileNameLocal_OtherOWner1"] -Presented $result[5].Name;
+    Assert-AreEqualPath  -Expected "Unknown"                       -Presented $result[5].Status 
+    Assert-AreEqualPath  -Expected ""                              -Presented $result[5].Destination; 
     Assert-ItemExist     -Path     $e["FileNameLocal_OtherOWner1"]
 
-    Assert-AreEqual      -Expected "OtherOwner"         -Presented $result[5].Owner; 
-    Assert-AreEqualPath  -Expected $e["FileNameLocal_OtherOWner2"] -Presented $result[5].Name;
-    Assert-AreEqualPath  -Expected "Unknown"            -Presented $result[5].Status 
-    Assert-AreEqualPath  -Expected ""                   -Presented $result[5].Destination; 
+    Assert-AreEqual      -Expected "OtherOwner"                    -Presented $result[6].Owner; 
+    Assert-AreEqualPath  -Expected $e["FileNameLocal_OtherOWner2"] -Presented $result[6].Name;
+    Assert-AreEqualPath  -Expected "Unknown"                       -Presented $result[6].Status 
+    Assert-AreEqualPath  -Expected ""                              -Presented $result[6].Destination; 
     Assert-ItemExist     -Path     $e["FileNameLocal_OtherOWner2"]
 
 } 
@@ -1166,13 +1179,37 @@ function DocsTest_ConvertToFile_SingleFile {
     Assert-ItemExist    -Path $fileName
     Assert-ItemNotExist    -Path $newName
 
-    ConvertTo-DocsFile -Path $fileName -Owner kk -Date "121212" -Description "SomeDescription" -WhatIf 
+    Rename-DocsFile -Path $fileName -Owner kk -Date "121212" -PreDescription "SomeDescription" -WhatIf 
    
     Assert-Count -Expected 1 -Presented (Get-ChildItem)
     Assert-ItemNotExist    -Path $newName
     Assert-ItemExist    -Path $fileName
   
-    ConvertTo-DocsFile -Path $fileName -Owner kk -Date "121212" -Description "SomeDescription"
+    Rename-DocsFile -Path $fileName -Owner kk -Date "121212" -PreDescription "SomeDescription" 
+   
+    Assert-Count -Expected 1 -Presented (Get-ChildItem)
+    Assert-ItemNotExist    -Path $fileName
+    Assert-ItemExist -Path $newName
+}
+
+function DocsTest_ConvertToFile_SingleFile_WithDescription {
+    
+    $fileName = "filename1.txt"
+    $newName = "121212-kk-SomeDescription.txt"
+
+    "This content is fake" | Out-File -FilePath $fileName 
+
+    # Single file 
+    Assert-ItemExist    -Path $fileName
+    Assert-ItemNotExist    -Path $newName
+
+    Rename-DocsFile -Path $fileName -Owner kk -Date "121212" -Description "SomeDescription" -WhatIf 
+   
+    Assert-Count -Expected 1 -Presented (Get-ChildItem)
+    Assert-ItemNotExist    -Path $newName
+    Assert-ItemExist    -Path $fileName
+  
+    Rename-DocsFile -Path $fileName -Owner kk -Date "121212" -Description "SomeDescription" 
    
     Assert-Count -Expected 1 -Presented (Get-ChildItem)
     Assert-ItemNotExist    -Path $fileName
@@ -1192,7 +1229,7 @@ function DocsTest_ConvertToFile_WildChar{
     "This content is fake" | Out-File -FilePath $oldName3
 
     # Single file 
-    ConvertTo-DocsFile -Path "Desc1*" -Owner kk -Date "121212"
+    Rename-DocsFile -Path "Desc1*" -Owner kk -Date "121212"
     Assert-ItemExist    -Path $newName1
     Assert-ItemExist    -Path $newName2
     Assert-ItemExist    -Path $newName3
@@ -1212,7 +1249,7 @@ function DocsTest_ConvertToFile_WildChar_WithDescription{
     "This content is fake" | Out-File -FilePath $oldName3
 
     # Single file 
-    ConvertTo-DocsFile -Path "Desc1*" -Owner kk -Date $Today -Description "PreToAd"
+    Rename-DocsFile -Path "Desc1*" -Owner kk -Date $Today -PreDescription "PreToAd"
     Assert-ItemExist    -Path $newName1
     Assert-ItemExist    -Path $newName2
     Assert-ItemExist    -Path $newName3
@@ -1237,7 +1274,7 @@ function DocsTest_ConvertToFile_Pipe_Files{
     $files = Get-ChildItem -Path 12*
 
     # Single file 
-    $files | ConvertTo-DocsFile -Owner kk -Target rename -Date 121212
+    $files | Rename-DocsFile -Owner kk -Target rename -Date 121212
     Assert-ItemExist    -Path $newName1
     Assert-ItemExist    -Path $newName2
     Assert-ItemNotExist    -Path $newName3
@@ -1259,7 +1296,7 @@ function DocsTest_ConvertToFile_Pipe_String{
     "This content is fake" | Out-File -FilePath $oldName3
 
     # Single file 
-    @($oldName1,$oldName3) |  ConvertTo-DocsFile -Owner kk -Target rename -Date 121212
+    @($oldName1,$oldName3) |  Rename-DocsFile -Owner kk -Target rename -Date 121212
 
     Assert-ItemExist    -Path $newName1
     Assert-ItemExist    -Path $oldName2

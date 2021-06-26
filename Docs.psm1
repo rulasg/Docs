@@ -14,9 +14,15 @@ CREATED: 05/26/2021
 
 Write-Host "Loading Docs ..." -ForegroundColor DarkCyan
 
+
 # Script Variables
 $script:StoresList = @()
 
+function Set-VerboseOn {
+    $VerbosePreference = Continue
+} Export-ModuleMember -Function Set-VerboseOn
+
+#region EnumAndClasses
 # Enums
 
 enum STATUS {
@@ -269,43 +275,9 @@ class DocName {
     }
 }
 
-function Set-VerboseOn {
-    $VerbosePreference = Continue
-} Export-ModuleMember -Function Set-VerboseOn
+#endregion EnumAndClasses
 
-# Stores
-
-function Add-Store {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory)][string] $Owner,
-        [Parameter(Mandatory)][string] $Path,   
-        [Parameter()][switch] $IsRecursive,
-        [Parameter()][switch] $Force
-    )
-    
-    if (! $script:StoresList) {
-        Reset-StoresList
-    }
-
-    if (!($Path | Test-Path) -and $Force) {
-        $null = New-item -ItemType Directory -Force -Path $Path 
-    }
-
-    $keyOwner = $Owner.ToLower()
-    
-    $o = New-Store -Owner $Owner -Path $Path -IsRecursive:$IsRecursive
-
-    "[Add-Store] {0} - {1}" -f $keyOwner, $o.Path | Write-Verbose
-
-    if ((Get-Owners) -contains $keyOwner) {
-        $StoresList[$keyOwner] = $o
-    }
-    else {
-        $StoresList.Add($Owner.ToLower(), $o)
-    }
-
-} Export-ModuleMember -Function Add-Store
+#region Stores
 
 function New-Store {
     [CmdletBinding()]
@@ -338,6 +310,38 @@ function New-Store {
 
     return $o
 }
+
+function Add-Store {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)][string] $Owner,
+        [Parameter(Mandatory)][string] $Path,   
+        [Parameter()][switch] $IsRecursive,
+        [Parameter()][switch] $Force
+    )
+    
+    if (! $script:StoresList) {
+        Reset-StoresList
+    }
+
+    if (!($Path | Test-Path) -and $Force) {
+        $null = New-item -ItemType Directory -Force -Path $Path 
+    }
+
+    $keyOwner = $Owner.ToLower()
+    
+    $o = New-Store -Owner $Owner -Path $Path -IsRecursive:$IsRecursive
+
+    "[Add-Store] {0} - {1}" -f $keyOwner, $o.Path | Write-Verbose
+
+    if ((Get-Owners) -contains $keyOwner) {
+        $StoresList[$keyOwner] = $o
+    }
+    else {
+        $StoresList.Add($Owner.ToLower(), $o)
+    }
+
+} Export-ModuleMember -Function Add-Store
 
 function Find-Store {
     [CmdletBinding()]
@@ -464,8 +468,9 @@ function Get-Owners {
     
 } Export-ModuleMember -Function Get-Owners -Alias "go"
 
-# Files
+#endregion Store
 
+#region DocName
 function New-DocName {
     [CmdletBinding()]
     Param(
@@ -495,6 +500,31 @@ function New-DocName {
     return $dn
 }
 
+function ConvertTo-DocName {
+    [CmdletBinding(SupportsShouldProcess)]
+    Param(
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Alias("PSPath")] [string[]] $Path,
+        [parameter()][string]$Description,
+        [parameter()][string]$Date,
+        [parameter()][string]$Owner,
+        [parameter()][string]$Target,
+        [parameter()][string]$Amount,
+        [parameter()][string]$What,
+        [parameter()][string]$Type,
+        [parameter()][switch]$PassThru
+    )
+        
+    process {
+        $filenName = $Path | Split-Path -Leaf
+        [DocName]::Convert($filenName)
+    }
+    
+} Export-ModuleMember -Function ConvertTo-DocName
+
+#endregion DocName
+
+#region File
 function Get-FileNamePattern {
     [CmdletBinding()]
     Param(
@@ -565,7 +595,6 @@ function Get-FileName {
     
 } Export-ModuleMember -Function Get-FileName
 
-
 function Test-File {
     [CmdletBinding()]
     param(
@@ -616,28 +645,6 @@ function Test-FileName {
         return $isValid
     }
 }Export-ModuleMember -Function Test-FileName
-
-function ConvertTo-DocName {
-    [CmdletBinding(SupportsShouldProcess)]
-    Param(
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
-        [Alias("PSPath")] [string[]] $Path,
-        [parameter()][string]$Description,
-        [parameter()][string]$Date,
-        [parameter()][string]$Owner,
-        [parameter()][string]$Target,
-        [parameter()][string]$Amount,
-        [parameter()][string]$What,
-        [parameter()][string]$Type,
-        [parameter()][switch]$PassThru
-    )
-        
-    process {
-        $filenName = $Path | Split-Path -Leaf
-        [DocName]::Convert($filenName)
-    }
-    
-} Export-ModuleMember -Function ConvertTo-DocName
 
 function Find-File {
     [CmdletBinding()]
@@ -835,14 +842,14 @@ function Rename-File {
                     $ret = $File | Rename-Item -NewName $newFileName -PassThru:$PassThru
                 }
                 elseif ($WhatIfPreference) {
-                    "[ConvertTo-File] | {0} -> {1}" -f $fileName, $newFileName | Write-Verbose
+                    "[Rename-File] | {0} -> {1}" -f $fileName, $newFileName | Write-Verbose
                 }
                 else {
-                    "[ConvertTo-File] | {0} -> {1}" -f $fileName, $newFileName | Write-Warning
+                    "[Rename-File] | {0} -> {1}" -f $fileName, $newFileName | Write-Warning
                 }
             } 
             else {
-                "[ConvertTo-File] | {0} == {1}" -f $fileName, $newFileName | Write-Verbose
+                "[Rename-File] | {0} == {1}" -f $fileName, $newFileName | Write-Verbose
             }
 
             # Only if rename is called with Passthru
@@ -851,68 +858,6 @@ function Rename-File {
     }
 } Export-ModuleMember -Function Rename-File
 
-function ConvertTo-File {
-    [CmdletBinding(SupportsShouldProcess)]
-    Param(
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
-        [Alias("PSPath")] [string[]] $Path,
-        [parameter()][string]$Description,
-        [parameter()][string]$Date,
-        [parameter()][string]$Owner,
-        [parameter()][string]$Target,
-        [parameter()][string]$Amount,
-        [parameter()][string]$What,
-        [parameter()][string]$Type,
-        [parameter()][switch]$PassThru
-    )
-
-    process {
-
-        #Path 
-        $files = Get-ChildItem -Path $Path
-
-        foreach ($file in $Files) {
-            
-            $docName = ConvertTo-DocName -Path $file
-
-            $NewDocFile = New-DocName            `
-                -DocName $docName                `
-                -Date $Date                      `
-                -Owner $Owner                    `
-                -Target $Target                  `
-                -Amount $Amount                  `
-                -What $What                      `
-                -PreDescription $Description  `
-                -Type $Type 
-            
-            $newFileName = $NewDocFile.Name()
-            $fileName = $File.Name
-            
-            if ($fileName -ne $newFileName) {
-                
-                if ($PSCmdlet.ShouldProcess($File.Name, "Renamed")) {
-                    $ret = $File | Rename-Item -NewName $newFileName -PassThru:$PassThru
-                }
-                elseif ($WhatIfPreference) {
-                    "[ConvertTo-File] | {0} -> {1}" -f $fileName, $newFileName | Write-Warning
-                }
-                else {
-                    "[ConvertTo-File] | {0} -> {1}" -f $fileName, $newFileName | Write-Verbose
-                }
-            } 
-            else {
-                "[ConvertTo-File] | {0} == {1}" -f $fileName, $newFileName | Write-Verbose
-            }
-
-            # Only if rename is called with Passthru
-            $ret
-        }
-    }
-
-    end {
-    }
-} Export-ModuleMember -Function ConvertTo-File
-
 function Move-File {
     [CmdletBinding(SupportsShouldProcess)]
     Param(
@@ -920,19 +865,16 @@ function Move-File {
         [Alias("PSPath")]
         [string[]] $Path,
         [parameter()][string]$Pattern,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Description,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Date,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Target,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
-        [parameter(ValueFromPipelineByPropertyName)][string]$What,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Type,
+        [parameter()][string]$Description,
+        [parameter()][string]$Date,
+        [parameter()][string]$Owner,
+        [parameter()][string]$Target,
+        [parameter()][string]$Amount,
+        [parameter()][string]$What,
+        [parameter()][string]$Type,
         [parameter()][switch] $Recurse,
         [parameter()][switch] $Force
     )
-    begin {
-
-    }
 
     process {
 
@@ -966,6 +908,10 @@ function Move-File {
                 } 
                 else {
                     
+                    if (!$store.Exist) {
+                        throw "FOLDER_NOT_FOUND"
+                    }
+
                     $destination = $Store.Path 
         
                     $destinationPath = $destination | Join-Path -ChildPath $File.Name
@@ -1021,15 +967,13 @@ function Move-File {
             $retObject | Add-Member -NotePropertyName "FullName" -NotePropertyValue $File.FullName
             $retObject | Add-Member -NotePropertyName "Name" -NotePropertyValue $File.Name
             $retObject | Add-Member -NotePropertyName "Owner" -NotePropertyValue $Owner
-            $retObject | Add-Member -NotePropertyName "Destination" -NotePropertyValue $destination
+            $retObject | Add-Member -NotePropertyName "Destination" -NotePropertyValue ($destination ?? [string]::Empty) 
             $retObject | Add-Member -NotePropertyName "Status" -NotePropertyValue $Status
             
             $retObject
         }
     }
 
-    end {
-    }
 } Export-ModuleMember -Function Move-File
 
 function Move-FileItem {
@@ -1039,10 +983,6 @@ function Move-FileItem {
         [parameter(Mandatory, Position = 1)] $Destination,
         [parameter()] [switch] $Force
     )
-    
-    begin {
-
-    }
     
     process {
         # Destination
@@ -1103,9 +1043,6 @@ function Move-FileItem {
         }
     }
 
-    end {
-        
-    }
 } Export-ModuleMember -Function Move-FileItem
 
 function GetFileCopyName([string] $Path) {
@@ -1121,7 +1058,9 @@ function GetFileCopyName([string] $Path) {
 
     return $nameBase
 }
+#endregion File
 
+#region Formats
 function Format-MoveStatus {
     [Alias("fms")]
     param (
@@ -1135,3 +1074,5 @@ function Format-Name {
     )
     $input | ForEach-Object { $_.Name() }
 } Export-ModuleMember -Function Format-Name -Alias "fname"
+
+#endregion Formats
