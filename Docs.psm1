@@ -277,13 +277,31 @@ class DocName {
         return $ret
     }
     static [bool] hidden TestDate([string] $Date) {
-        $ret = $Date -match "^\d+$"
+        # $ret = $Date -match "^\d+$"
+        
+        if (!($Date -match "^[0-9]{2,6}$")) {
+            return $false
+        }
 
-        # if (!$ret) {
-        #     "Date format is not correct [ {0}]" -f $Date | Write-Verbose
-        # }
+        # Check if date is correct
+        # We may fall in issues with the date format
 
-        return $ret
+        
+        try {
+            switch ($Date.Length) {
+                2 { $null = [datetime]::ParseExact($Date,"yy",$null)}
+                4 { $null = [datetime]::ParseExact($Date,"yymm",$null)}
+                6 { $null = [datetime]::ParseExact($Date,"yymmdd",$null)}
+                Default {
+                    return $false
+                }
+            }
+        }
+        catch {
+            return $false
+        }
+
+        return $true
     }
 }
 
