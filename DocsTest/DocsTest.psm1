@@ -150,15 +150,15 @@ function DocsTest_SetLocation{
     $converted1 = $storefolder1 | Convert-Path
     $converted2 = $storefolder2 | Convert-Path
 
-    Set-DocsLocationStore -Owner test1
+    Set-DocsLocationToStore -Owner test1
 
     Assert-AreEqualPath -Expected $converted1  -Presented '.'
     
-    "test2" | Set-DocsLocationStore 
+    "test2" | Set-DocsLocationToStore 
 
     Assert-AreEqualPath -Expected $converted2 -Presented '.'
 
-    Set-DocsLocationStore test1
+    Set-DocsLocationToStore test1
 
     Assert-AreEqualPath -Expected $converted1  -Presented '.'
 }

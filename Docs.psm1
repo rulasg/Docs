@@ -355,28 +355,6 @@ function Add-Store {
 
 } Export-ModuleMember -Function Add-Store
 
-function Reset-StoresList {
-    [CmdletBinding()]
-    param (
-        $StoreList
-    )
-
-    if ($StoreList) {
-        $script:StoresList = $StoreList        
-    }
-    else {
-        $script:StoresList = New-StoresList
-    }    
-
-} Export-ModuleMember -Function Reset-StoresList
-
-function New-StoresList {
-    [CmdletBinding()]
-    param()
-
-    return New-Object 'System.Collections.Generic.Dictionary[[string],[PSObject]]'
-} Export-ModuleMember -Function New-StoresList
-
 function Get-Store {
     [CmdletBinding()]
     [Alias("gs")]
@@ -412,7 +390,29 @@ function Get-Store {
 
 } Export-ModuleMember -Function Get-Store -Alias "gs"
 
-function Set-LocationStore {
+function Reset-StoresList {
+    [CmdletBinding()]
+    param (
+        $StoreList
+    )
+
+    if ($StoreList) {
+        $script:StoresList = $StoreList        
+    }
+    else {
+        $script:StoresList = New-StoresList
+    }    
+
+} Export-ModuleMember -Function Reset-StoresList
+
+function New-StoresList {
+    [CmdletBinding()]
+    param()
+
+    return New-Object 'System.Collections.Generic.Dictionary[[string],[PSObject]]'
+} Export-ModuleMember -Function New-StoresList
+
+function Set-LocationToStore {
     [CmdletBinding()]
     [Alias("sl")]
 
@@ -440,7 +440,7 @@ function Set-LocationStore {
         $location | Set-Location
         Get-ChildItem
     }
-} Export-ModuleMember -Function Set-LocationStore -Alias "sl"
+} Export-ModuleMember -Function Set-LocationToStore -Alias "sl"
 
 function Get-Owners {
     [CmdletBinding()]
@@ -582,38 +582,6 @@ function Get-FileName {
     
 } Export-ModuleMember -Function Get-FileName
 
-function Test-File {
-    [CmdletBinding()]
-    param(
-        [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
-        [Alias("PSPath")]
-        [string[]] $Path
-    )
-    process {
-
-        $Path ??= "."
-
-        # file name format
-        $files = Get-ChildItem -Path $Path 2> $null
-
-        if ($files.Length -eq 0) {
-            return $false
-        }
-
-        foreach ($file in $files) {
-   
-            # Does not exist or is a folder
-            if ( $file | Test-Path -PathType Container) {
-                $ret = $false
-            }
-            else {
-                $ret = $file.Name | Test-FileName
-            }
-            $ret
-        }
-    }
-} Export-ModuleMember -Function Test-File
-
 function Test-FileName {
     [CmdletBinding()]
     param(
@@ -630,48 +598,6 @@ function Test-FileName {
         return $isValid
     }
 }Export-ModuleMember -Function Test-FileName
-
-function Find-File {
-    [CmdletBinding()]
-    [Alias("f")]
-    Param(
-        [parameter(ValueFromPipeline, Position = 0)][string]$Pattern,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Description,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Date,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Target,
-        [parameter(ValueFromPipelineByPropertyName)][string]$What,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Type,
-        [parameter()][switch] $Recurse
-    )
-    
-    $retFiles = @()
-    $Pattern | Write-Verbose
-    $Pattern = Get-FileNamePattern `
-        -Pattern $Pattern          `
-        -Date $Date                `
-        -Owner $Owner              `
-        -Target $Target            `
-        -Amount $Amount            `
-        -What $What                `
-        -Description $Description  `
-        -Type $Type 
-
-    $Pattern | Write-Verbose
-
-    foreach ($store in $(Get-Store -Exist)) {
-        "Searching {0}..." -f ($store.Path | Join-Path -ChildPath $Pattern)  | Write-Verbose
-        $files = Get-ChildItem -Path $store.Path -Filter $Pattern -Recurse:$store.IsRecursive 
-        foreach ($file in $files) {
-            if ($retFiles -notcontains $file.FullName) {
-                $retFiles += $file.FullName
-                $file
-            }
-        }
-    }
-    
-} Export-ModuleMember -Function Find-File -Alias "f"
 
 function Get-FileToMove {
     [CmdletBinding()]
@@ -726,6 +652,48 @@ function Get-FileToMove {
         return $retFiles
     }
 } Export-ModuleMember -Function Get-FileToMove
+
+function Find-File {
+    [CmdletBinding()]
+    [Alias("f")]
+    Param(
+        [parameter(ValueFromPipeline, Position = 0)][string]$Pattern,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Description,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Date,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Target,
+        [parameter(ValueFromPipelineByPropertyName)][string]$What,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Type,
+        [parameter()][switch] $Recurse
+    )
+    
+    $retFiles = @()
+    $Pattern | Write-Verbose
+    $Pattern = Get-FileNamePattern `
+        -Pattern $Pattern          `
+        -Date $Date                `
+        -Owner $Owner              `
+        -Target $Target            `
+        -Amount $Amount            `
+        -What $What                `
+        -Description $Description  `
+        -Type $Type 
+
+    $Pattern | Write-Verbose
+
+    foreach ($store in $(Get-Store -Exist)) {
+        "Searching {0}..." -f ($store.Path | Join-Path -ChildPath $Pattern)  | Write-Verbose
+        $files = Get-ChildItem -Path $store.Path -Filter $Pattern -Recurse:$store.IsRecursive 
+        foreach ($file in $files) {
+            if ($retFiles -notcontains $file.FullName) {
+                $retFiles += $file.FullName
+                $file
+            }
+        }
+    }
+    
+} Export-ModuleMember -Function Find-File -Alias "f"
 
 function Get-File {
     [CmdletBinding()]
@@ -960,6 +928,38 @@ function Move-File {
     }
 
 } Export-ModuleMember -Function Move-File
+
+function Test-File {
+    [CmdletBinding()]
+    param(
+        [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Alias("PSPath")]
+        [string[]] $Path
+    )
+    process {
+
+        $Path ??= "."
+
+        # file name format
+        $files = Get-ChildItem -Path $Path 2> $null
+
+        if ($files.Length -eq 0) {
+            return $false
+        }
+
+        foreach ($file in $files) {
+   
+            # Does not exist or is a folder
+            if ( $file | Test-Path -PathType Container) {
+                $ret = $false
+            }
+            else {
+                $ret = $file.Name | Test-FileName
+            }
+            $ret
+        }
+    }
+} Export-ModuleMember -Function Test-File
 
 function Move-FileItem {
     [CmdletBinding(SupportsShouldProcess)]
