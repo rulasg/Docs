@@ -539,7 +539,7 @@ function Get-FileNamePattern {
         -Type $Type                
 
     return $dn.Pattern()
-} Export-ModuleMember -Function Get-FileNamePattern
+} 
 
 function Get-FileName {
     [CmdletBinding()]

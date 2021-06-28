@@ -223,16 +223,6 @@ function DocsTest_GetOwners_Filtered {
     Assert-AreEqual -Expected "kt2k2" -Presented $result[2]
 
 }
-function DocsTest_GetFileNamePattern{
-
-        # Base Pattern
-        $fnp = Get-DocsFileNamePattern
-        Assert-AreEqual -Expected "*-*-*.*" -Presented $fnp
-        
-        # Ammount
-        $fnp = Get-DocsFileNamePattern -Amount "99#99"
-        Assert-AreEqual -Expected "*-*-*99#99*-*.*" -Presented $fnp
-}
 
 function DocsTest_FileName {
     $date = "121212"
