@@ -599,60 +599,6 @@ function Test-FileName {
     }
 }Export-ModuleMember -Function Test-FileName
 
-function Get-FileToMove {
-    [CmdletBinding()]
-    Param(
-        [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
-        [Alias("PSPath")]
-        [string[]] $Path,
-        [parameter()][string]$Pattern,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Description,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Date,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Target,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
-        [parameter(ValueFromPipelineByPropertyName)][string]$What,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Type,
-        [parameter()][switch] $Recurse
-    )
-    begin {
-        $retFiles = @()
-    }
-    
-    process {
-        $Path = $Path ?? "."
-
-        $Pattern = Get-FileNamePattern `
-            -Pattern $Pattern          `
-            -Date $Date                `
-            -Owner $Owner              `
-            -Target $Target            `
-            -Amount $Amount            `
-            -What $What                `
-            -Description $Description  `
-            -Type $Type 
-
-        # file name format
-        $files = Get-ChildItem -Path $Path -Filter $Pattern -Recurse:$Recurse
-
-        if ($VerbosePreference) {
-            $all = Get-ChildItem -Path $Path -Recurse:$Recurse
-        }
-
-        foreach ($file in $files) {
-            if (Test-File -Path $file) {
-                # Add to ret
-                $retFiles += $file
-            }
-        }
-    }
-    
-    end {
-        "FilesToMove - Found [{0}] Valid [{1}]" -f $all.Length, $retFiles.Length | Write-Verbose
-        return $retFiles
-    }
-} Export-ModuleMember -Function Get-FileToMove
-
 function Find-File {
     [CmdletBinding()]
     [Alias("f")]
@@ -831,7 +777,7 @@ function Move-File {
 
     process {
 
-        $files = Get-FileToMove        `
+        $files = Get-File        `
             -Path $Path                `
             -Pattern $Pattern          `
             -Date $Date                `
