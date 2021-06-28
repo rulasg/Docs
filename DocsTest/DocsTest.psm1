@@ -77,7 +77,7 @@ function DocsTest_GetStores {
     Add-DocsStore -Owner "SampleOwner2" -Path "$Home/fackefolder2" -IsRecursive
     Add-DocsStore -Owner "SampleOwner3" -Path $Home
 
-    $result = Get-DocsStores
+    $result = Get-DocsStore
 
     Assert-Count -Expected 4 -Presented $result
 
@@ -107,7 +107,7 @@ function DocsTest_GetStores {
 
     # Owner
 
-    $result2 = Get-DocsStores -Owner "SampleOwner2"
+    $result2 = Get-DocsStore -Owner "SampleOwner2"
     
     Assert-Count -Expected 1 -Presented $result2
 
@@ -120,7 +120,7 @@ function DocsTest_GetStores {
 
     # Exist
 
-    $result3 = Get-DocsStores -Exist
+    $result3 = Get-DocsStore -Exist
 
     Assert-Count -Expected 2 -Presented $result3
 
@@ -138,33 +138,6 @@ function DocsTest_GetStores {
 
 }
 
-function DocsTest_FindStore{
-
-    ResetDocsList
-
-    Add-DocsStore -Owner "SampleOwner0" -Path "$Home/fackefolder0"
-    Add-DocsStore -Owner "SampleOwner1" -Path . -IsRecursive
-    Add-DocsStore -Owner "SampleOwner2" -Path "$Home/fackefolder2" -IsRecursive
-    Add-DocsStore -Owner "SampleOwner3" -Path $Home
-
-    $result = Find-DocsStore -Owner "SampleOwner2"
-
-    Assert-AreEqualPath -Expected "$Home/fackefolder2" -Presented $result.Path
-    
-    $result = "SampleOwner0" | Find-DocsStore 
-
-    Assert-AreEqualPath -Expected "$Home/fackefolder0" -Presented $result.Path
-
-    $hasThrow = $false
-    try {
-        Find-DocsStore -Owner "FakeOwner"
-    } catch { 
-        Write-Verbose -Message $_.Exception.Message
-        $hasThrow = $true
-        Assert-AreEqual -Expected OWNER_UNKNOWN -Presented $_.Exception.Message
-    }
-    Assert-IsTrue -Condition $hasThrow
-}
 function DocsTest_SetLocation{
 
     $storefolder1 = "." | Join-Path -ChildPath "Fakefolder1" -AdditionalChildPath "FakeStoreFolder1"

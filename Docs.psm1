@@ -355,29 +355,6 @@ function Add-Store {
 
 } Export-ModuleMember -Function Add-Store
 
-function Find-Store {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)][string] $Owner
-    )
-    # Get Store by owner
-    $store = Get-Stores -Owner $Owner
-    
-    $status = [STATUS]::SUCCESS
-
-    if (!$store -or $store.Count -ne 1) {
-        $status = ($store.Count -eq 0 ? "OWNER_UNKNOWN" : "OWNER_STORE_UNCLEAR")
-        "{0} store {1} ..." -f $file.Name, $status | Write-Verbose
-        throw $Status
-    } 
-
-    if ($status -ne [STATUS]::SUCCESS) {
-        throw $status
-    }
-
-    return $store
-} Export-ModuleMember -Function Find-Store
-
 function Reset-StoresList {
     [CmdletBinding()]
     param (
@@ -400,7 +377,7 @@ function New-StoresList {
     return New-Object 'System.Collections.Generic.Dictionary[[string],[PSObject]]'
 } Export-ModuleMember -Function New-StoresList
 
-function Get-Stores {
+function Get-Store {
     [CmdletBinding()]
     [Alias("gs")]
     param (
@@ -433,7 +410,7 @@ function Get-Stores {
 
     }
 
-} Export-ModuleMember -Function Get-Stores -Alias "gs"
+} Export-ModuleMember -Function Get-Store -Alias "gs"
 
 function Set-LocationStore {
     [CmdletBinding()]
@@ -451,7 +428,7 @@ function Set-LocationStore {
         )]
         [string] $Owner
     )
-    $location = Get-Stores -Owner $Owner
+    $location = Get-Store -Owner $Owner
 
     if (!$location) {
         "Owner unknown" | Write-Error
@@ -683,7 +660,7 @@ function Find-File {
 
     $Pattern | Write-Verbose
 
-    foreach ($store in $(Get-Stores -Exist)) {
+    foreach ($store in $(Get-Store -Exist)) {
         "Searching {0}..." -f ($store.Path | Join-Path -ChildPath $Pattern)  | Write-Verbose
         $files = Get-ChildItem -Path $store.Path -Filter $Pattern -Recurse:$store.IsRecursive 
         foreach ($file in $files) {
@@ -908,7 +885,7 @@ function Move-File {
             try {
 
                 # Get Store by owner
-                $store = Get-Stores -Owner $Owner
+                $store = Get-Store -Owner $Owner
                 if ($store.Count -ne 1) {
                     $status = ($store.Count -eq 0 ? "Unknown" : "Unclear")
                     $destination = [string]::Empty
