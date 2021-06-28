@@ -420,6 +420,12 @@ function DocsTest_TestFileName_FileFormats {
     Assert-IsFalse -Condition ("Owner-Descdescr.txt"                                           | Test-DocsFileName) -Comment "Owner-Descdescr.txt"                                          
     Assert-IsFalse -Condition ("12121a-owner-descr.txt"                                        | Test-DocsFileName) -Comment "12121a-owner-descr.txt"                                       
     Assert-IsFalse -Condition ("121212-owner-target-32.32-Desc.txt"                            | Test-DocsFileName) -Comment "121212-owner-target-32#32-Desc.txt"                           
+    Assert-IsFalse -Condition ("1-owner-descr.txt"                                            | Test-DocsFileName) -Comment "121212-owner-descr"                                           
+    Assert-IsFalse -Condition ("1212122-NoOwner.txt"                                            | Test-DocsFileName) -Comment "121212-NoOwner.txt"                                           
+    Assert-IsFalse -Condition ("1213-NoOwner.txt"                                            | Test-DocsFileName) -Comment "121212-NoOwner.txt"                                           
+    Assert-IsFalse -Condition ("121232-NoOwner.txt"                                            | Test-DocsFileName) -Comment "121212-NoOwner.txt"                                           
+    Assert-IsFalse -Condition ("00-NoOwner.txt"                                            | Test-DocsFileName) -Comment "121212-NoOwner.txt"                                           
+    Assert-IsFalse -Condition ("001212-NoOwner.txt"                                            | Test-DocsFileName) -Comment "121212-NoOwner.txt"                                           
 }
 
 function DocsTest_GetFile_All{
