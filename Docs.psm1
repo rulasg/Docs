@@ -614,12 +614,10 @@ function Test-File {
     )
     process {
 
-        if (!$Path) { $Path = "." }
-
-        $Pattern = Get-FileNamePattern
+        $Path ??= "."
 
         # file name format
-        $files = Get-ChildItem -Path $Path -Filter $Pattern -Recurse:$Recurse
+        $files = Get-ChildItem -Path $Path 2> $null
 
         if ($files.Length -eq 0) {
             return $false
