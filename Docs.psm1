@@ -89,10 +89,10 @@ class DocName {
         if ($this.Type) { $t = $this.Type } else { $t = [DocName]::DEFAULT_TYPE }
         if ($this.Description) { 
             $des = $this.Description
-            $des = $this.Description.Replace(' ', '_') 
-            $des = $this.Description.Replace('-', '_') 
-            $des = $this.Description.Replace('[', '_') 
-            $des = $this.Description.Replace(']', '_') 
+            $des = $des.Replace(' ', '_') 
+            $des = $des.Replace('-', '_') 
+            $des = $des.Replace('[', '_') 
+            $des = $des.Replace(']', '_') 
         } 
         else {
             $des = [DocName]::DEFAULT_DESCRIPTION
@@ -485,26 +485,38 @@ function New-DocName {
     $dn.Description = ($PreDescription) ? ("{0}_{1}" -f $PreDescription, $DocName.Description) : $dn.Description
 
     return $dn
-}
+} Export-ModuleMember -Function New-DocName
 
 function ConvertTo-DocName {
-    [CmdletBinding(SupportsShouldProcess)]
     Param(
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [Alias("PSPath")] [string[]] $Path,
         [parameter()][string]$Description,
+        [parameter()][string]$PreDescription,
         [parameter()][string]$Date,
         [parameter()][string]$Owner,
         [parameter()][string]$Target,
         [parameter()][string]$Amount,
         [parameter()][string]$What,
-        [parameter()][string]$Type,
-        [parameter()][switch]$PassThru
+        [parameter()][string]$Type
     )
         
     process {
         $filenName = $Path | Split-Path -Leaf
-        [DocName]::Convert($filenName)
+        $docname = [DocName]::Convert($filenName)
+
+        $NewDocName = New-DocName      `
+            -DocName $docName          `
+            -Date $Date                `
+            -Owner $Owner              `
+            -Target $Target            `
+            -Amount $Amount            `
+            -What $What                `
+            -Description $Description  `
+            -PreDescription $PreDescription  `
+            -Type $Type 
+
+        return $NewDocName
     }
     
 } Export-ModuleMember -Function ConvertTo-DocName
@@ -565,19 +577,9 @@ function Get-FileName {
             -PreDescription $PreDescription  `
             -Type $Type 
             
-        # Mandatory Default values
-        $dn.Date = (![string]::IsNullOrWhiteSpace($dn.Date)) ? $dn.Date : (Get-Date -Format 'yyMMdd')
-        $dn.Owner = (![string]::IsNullOrWhiteSpace($dn.Owner)) ? $dn.Owner : ([DocName]::DEFAULT_OWNER)
-        $dn.Description = (![string]::IsNullOrWhiteSpace($dn.Description)) ? $dn.Description : ([DocName]::DEFAULT_DESCRIPTION)
-        $dn.Type = (![string]::IsNullOrWhiteSpace($dn.Type)) ? $dn.Type : ([DocName]::DEFAULT_TYPE) 
     
-        if ($dn.IsValid()) {
-            return $dn.Name()
-        }
-        
-        # "[Get-FileName] Error" | Write-Error
-        # return $null
-        throw "[Get-FileName] DocName not valid"
+    return $dn.Name()
+
     }
     
 } Export-ModuleMember -Function Get-FileName
@@ -630,7 +632,7 @@ function Find-File {
 
     foreach ($store in $(Get-Store -Exist)) {
         "Searching {0}..." -f ($store.Path | Join-Path -ChildPath $Pattern)  | Write-Verbose
-        $files = Get-ChildItem -Path $store.Path -Filter $Pattern -Recurse:$store.IsRecursive 
+        $files = Get-ChildItem -Path $store.Path -Filter $Pattern -Recurse:$store.IsRecursive -File
         foreach ($file in $files) {
             if ($retFiles -notcontains $file.FullName) {
                 $retFiles += $file.FullName
@@ -716,11 +718,11 @@ function Rename-File {
     process {
 
         #Path 
-        $files = Get-ChildItem -Path $Path         
+        $files = Get-ChildItem -Path $Path -File
         
         foreach ($File in $Files) {
             
-            $docName = $File | ConvertTo-DocsDocName
+            $docName = $File | ConvertTo-DocName
             $NewDocFile = New-DocName      `
                 -DocName $docName          `
                 -Date $Date                `
@@ -733,7 +735,7 @@ function Rename-File {
                 -Type $Type 
 
             $newFileName = $NewDocFile.Name()
-            $fileName = $docName.Name()
+            $fileName = $file | Split-Path -leaf
             
             if ($fileName -ne $newFileName) {
                 
@@ -887,7 +889,7 @@ function Test-File {
         $Path ??= "."
 
         # file name format
-        $files = Get-ChildItem -Path $Path 2> $null
+        $files = Get-ChildItem -Path $Path -File 2> $null
 
         if ($files.Length -eq 0) {
             return $false

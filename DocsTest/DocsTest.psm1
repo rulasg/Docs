@@ -14,6 +14,7 @@ CREATED: 05/26/2021
 
 Write-Host "Loading DocsTest ..." -ForegroundColor DarkCyan
 
+[string] $SPLITTER = "-"
 
 function ResetDocsList([switch]$PassThru) {
 
@@ -818,7 +819,47 @@ function DocsTest_MoveFile_Path_Exists_ARE_NOT_EQUAL_Force {
     Assert-ItemNotExist  -Path $e["filename2"]
 }
 
+function DocsTest_DocName_Name_Transformations_Defaults{
+    
+    $dn = New-DocsDocName
 
+    $result = $dn.Name() | ConvertTo-DocsDocName
+
+    # Date
+    Assert-IsNull -Object $dn.Date
+    Assert-AreEqualPath -Expected (Get-TodayDateReverse) -Presented $result.Date
+    
+    # Owner
+    Assert-IsNull -Object $dn.Owner
+    Assert-AreEqualPath -Expected "rulasg" -Presented $result.Owner
+    
+    # Type
+    Assert-IsNull -Object $dn.Type
+    Assert-AreEqualPath -Expected "pdf" -Presented $result.Type
+    
+    # Description
+    #   Default
+    Assert-AreEqualPath -Expected "DESCRIPTION" -Presented $result.Description
+}
+
+function DocsTest_DocName_Name_Transformations_Description_Replacements{
+        #   Replace " ", - , [ , ]
+
+        $dn = New-DocsDocName -Description "something space"
+        $result = $dn.Name() | ConvertTo-DocsDocName 
+        Assert-AreEqualPath -Expected "something space" -Presented $dn.Description
+        Assert-AreEqualPath -Expected "something_space" -Presented $result.Description
+
+        $dn = New-DocsDocName -Description "something-space"
+        $result = $dn.Name() | ConvertTo-DocsDocName 
+        Assert-AreEqualPath -Expected "something-space" -Presented $dn.Description
+        Assert-AreEqualPath -Expected "something_space" -Presented $result.Description
+
+        $dn = New-DocsDocName -Description "something[space]"
+        $result = $dn.Name() | ConvertTo-DocsDocName 
+        Assert-AreEqualPath -Expected "something[space]" -Presented $dn.Description
+        Assert-AreEqualPath -Expected "something_space_" -Presented $result.Description
+}
 
 function DocsTest_ConvertToDocName{
 
@@ -917,6 +958,17 @@ function DocsTest_RenameFile_SingleFile{
     Rename-DocsFile -Path $oldName -Owner kk
     Assert-ItemExist    -Path $newName
     Assert-Count -Expected 1 -Presented (Get-ChildItem)
+}
+
+function DocsTest_RenameFile_SingleFile_TheSame{
+
+    $oldName = "122012-OtherOwner-Target-Description.txt"
+    "This content is fake" | Out-File -FilePath $oldName
+
+    # Single file 
+    Assert-ItemExist    -Path $oldName
+    Rename-DocsFile -Path $oldName
+    Assert-ItemExist    -Path $oldName
 }
 
 function DocsTest_RenameFile_SingleFile_PreDescription{
