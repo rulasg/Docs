@@ -87,17 +87,20 @@ class DocName {
         if ($this.Date) { $d = $this.Date } else { $d = Get-Date -Format 'yyMMdd' }
         if ($this.Owner) { $o = $this.Owner } else { $o = [DocName]::DEFAULT_OWNER }
         if ($this.Type) { $t = $this.Type } else { $t = [DocName]::DEFAULT_TYPE }
-        if ($this.Description) { 
-            $des = $this.Description
-            $des = $des.Replace(' ', '_') 
-            $des = $des.Replace('-', '_') 
-            $des = $des.Replace('[', '_') 
-            $des = $des.Replace(']', '_') 
-        } 
-        else {
-            $des = [DocName]::DEFAULT_DESCRIPTION
-        }
+        if ($this.Description) { $des = $this.Description } else { $des = [DocName]::DEFAULT_DESCRIPTION }
     
+        # Transformations
+        $d = [DocName]::TransformString($d)
+        $o = [DocName]::TransformString($o)
+        $ta = [DocName]::TransformString($this.Target)
+        $w = [DocName]::TransformString($this.What)
+        $am = [DocName]::TransformString($this.Amount)
+        $des = [DocName]::TransformString($des)
+        $t = [DocName]::TransformString($t)
+
+        $name2 = ($d,$o,$ta,$w,$am,$des).Where({ $_ -ne [string]::Empty }) -Join [DocName]::SPLITTER
+        $name2 =($name2,$t) -join '.'
+
         #d
         $o = [DocName]::Section($o)
         $ta = [DocName]::Section($this.Target)
@@ -105,8 +108,11 @@ class DocName {
         $am = [DocName]::Section($this.Amount)
         $des = [DocName]::Section($des)
         #t
-
         $name = "$d$o$ta$w$am$des.$t"
+
+        if ($name2 -ne $name) {
+            "Check the difference" | Write-Verbose
+        }
 
         "[DocName]::Name | {0}" -f $name | Write-Verbose
 
@@ -172,6 +178,24 @@ class DocName {
     [string] Sample() {
 
         return ("{0}-{1}-{2}-{3}-{4}-{5}.{6}" -f "date", "owner", "target", "what", "amount", "desc", "type")
+    }
+
+    # Just for testing purposes
+    hidden [string] TestTransformStr([string]$field){
+        return [DocName]::TransformString($field)
+    }
+
+    static [string] TransformString([string]$field) {
+        # Replaces Spacaes, / [ ] - 
+        # Split
+        $reg = "[\s-/\[\]\.]" 
+        $splitted = $field -split  $reg
+        # Remove empty
+        $splitted = $splitted | Where-Object {$_}
+        # Join field back
+        $ret = $splitted -join '_'
+
+        return $ret
     }
 
     static [DocName] Convert([string]$Path) {
@@ -289,9 +313,9 @@ class DocName {
         
         try {
             switch ($Date.Length) {
-                2 { $null = [datetime]::ParseExact($Date,"yy",$null)}
-                4 { $null = [datetime]::ParseExact($Date,"yymm",$null)}
-                6 { $null = [datetime]::ParseExact($Date,"yymmdd",$null)}
+                2 { $null = [datetime]::ParseExact($Date, "yy", $null) }
+                4 { $null = [datetime]::ParseExact($Date, "yymm", $null) }
+                6 { $null = [datetime]::ParseExact($Date, "yymmdd", $null) }
                 Default {
                     return $false
                 }
@@ -596,7 +620,7 @@ function Get-FileName {
             -Type $Type 
             
     
-    return $dn.Name()
+        return $dn.Name()
 
     }
     

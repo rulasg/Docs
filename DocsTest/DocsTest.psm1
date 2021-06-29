@@ -848,14 +848,23 @@ function DocsTest_DocName_Name_Transformations_Defaults{
     Assert-AreEqualPath -Expected "DESCRIPTION" -Presented $result.Description
 }
 
-function DocsTest_DocName_Name_Transformations_Description_Replacements{
+function DocsTest_DocName_Transformations_Description_Replacements{
+        # We wil use ConverTo.DocsDocName to check the format of the name
+
         #   Replace " ", - , [ , ]
 
+        #Spaces
         $dn = New-DocsDocName -Description "something space"
         $result = $dn.Name() | ConvertTo-DocsDocName 
         Assert-AreEqualPath -Expected "something space" -Presented $dn.Description
         Assert-AreEqualPath -Expected "something_space" -Presented $result.Description
+        # Spaces multi
+        $dn = New-DocsDocName -Description "something   space"
+        $result = $dn.Name() | ConvertTo-DocsDocName 
+        Assert-AreEqualPath -Expected "something   space" -Presented $dn.Description
+        Assert-AreEqualPath -Expected "something_space" -Presented $result.Description
 
+        # -
         $dn = New-DocsDocName -Description "something-space"
         $result = $dn.Name() | ConvertTo-DocsDocName 
         Assert-AreEqualPath -Expected "something-space" -Presented $dn.Description
@@ -865,6 +874,32 @@ function DocsTest_DocName_Name_Transformations_Description_Replacements{
         $result = $dn.Name() | ConvertTo-DocsDocName 
         Assert-AreEqualPath -Expected "something[space]" -Presented $dn.Description
         Assert-AreEqualPath -Expected "something_space_" -Presented $result.Description
+}
+
+function DocsTest_DocName_Transformations_Description_Replacements{
+
+        #'[\s/\[\]-]'
+
+        $dn = New-DocsDocName
+
+        Assert-AreEqual -Expected "one_two" -Presented ($dn.TestTransformStr("one-two"   )) 
+        Assert-AreEqual -Expected "one_two" -Presented ($dn.TestTransformStr("one--two"  )) 
+        Assert-AreEqual -Expected "one_two" -Presented ($dn.TestTransformStr("-one--two-")) 
+
+        Assert-AreEqual -Expected "one_two" -Presented ($dn.TestTransformStr("one two"   )) 
+        Assert-AreEqual -Expected "one_two" -Presented ($dn.TestTransformStr("one  two"  )) 
+        Assert-AreEqual -Expected "one_two" -Presented ($dn.TestTransformStr(" one  two ")) 
+
+        Assert-AreEqual -Expected "one_two" -Presented ($dn.TestTransformStr("one/two"   )) 
+        Assert-AreEqual -Expected "one_two" -Presented ($dn.TestTransformStr("one//two"  )) 
+        Assert-AreEqual -Expected "one_two" -Presented ($dn.TestTransformStr("//one//two")) 
+
+        Assert-AreEqual -Expected "one_two" -Presented ($dn.TestTransformStr("[one_two]" )) 
+        Assert-AreEqual -Expected "one_two" -Presented ($dn.TestTransformStr("[one]two"  )) 
+
+        Assert-AreEqual -Expected "one_two" -Presented ($dn.TestTransformStr("one.two"   )) 
+        Assert-AreEqual -Expected "one_two" -Presented ($dn.TestTransformStr("one..two"  )) 
+        Assert-AreEqual -Expected "one_two" -Presented ($dn.TestTransformStr(".one..two.")) 
 }
 
 function DocsTest_ConvertToDocName{
@@ -928,6 +963,7 @@ function DocsTest_ConvertToDocName{
     
     "121212-owner-target-32#32-What-Desc.txt"                   | ConvertTo-DocsDocName `
     | CheckDocName -Date "121212" -Owner "owner" -Target "target" -What "what" -Amount "32#32" -Description "Desc" -Type "txt"
+
 
     
 }
