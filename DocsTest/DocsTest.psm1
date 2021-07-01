@@ -342,13 +342,33 @@ function DocsTest_Find_MultiFolder {
 
     $result = Find-DocsFile -Description Test0
 
+    Assert-IsNull -Object $result
+
+    $result = Find-DocsFile -Description Test0*
+
     Assert-Count -Expected 3 -Presented $result
+
+    $result = Find-DocsFile -Description *File2
+
+    Assert-Count -Expected 1 -Presented $result
+
+    $result = Find-DocsFile -Description *File2*
+
+    Assert-Count -Expected 2 -Presented $result
+
+    $result = Find-DocsFile -Description Test0_File2
+
+    Assert-Count -Expected 1 -Presented $result
 
     $result = Find-DocsFile -Type Test1
 
     Assert-Count -Expected 3 -Presented $result
 
-    $result = Find-DocsFile -Target Testing2 -Description Test0
+    $result = Find-DocsFile -Target Testing* -Description Test0*
+
+    Assert-Count -Expected 3 -Presented $result
+
+    $result = Find-DocsFile -Target Testing2 -Description *0*
 
     Assert-Count -Expected 1 -Presented $result
     Assert-AreEqualPath -Expected $FileFullName2 -Presented $result[0]
@@ -357,13 +377,17 @@ function DocsTest_Find_MultiFolder {
 
     $result = Find-DocsFile -Date 11
 
+    Assert-IsNull -Object $result
+
+    $result = Find-DocsFile -Date 11*
+
     Assert-Count -Expected 2 -Presented $result
     Assert-AreEqualPath -Expected $FileFullName13 -Presented $result[0]
     Assert-AreEqualPath -Expected $FileFullName23 -Presented $result[1]
 
     # Date 
 
-    $result = Find-DocsFile -Date 1102
+    $result = Find-DocsFile -Date 1102*
 
     Assert-Count -Expected 1 -Presented $result
     Assert-AreEqualPath -Expected $FileFullName13 -Presented $result[0]

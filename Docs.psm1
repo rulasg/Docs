@@ -75,9 +75,9 @@ class DocName {
     # Interna Functions
 
     [string] hidden static Section([string] $sectionName) { if ($sectionName) { return "-$sectionName" } else { return [string]::Empty } }
-    [string] hidden static SectionPatternMandatory([string] $p ) { if ($p) { return "-*$p*" } else { return "-*" } }
-    [string] hidden static SectionPatternOptional ([string] $p ) { if ($p) { return "-*$p*" } else { return [string]::Empty } }
-    [string] hidden static SectionPattern     ([string] $p ) { if ($p) { return "*$p*" } else { return "*" } }
+    [string] hidden static SectionPatternMandatory([string] $p ) { if ($p) { return "-$p" } else { return "-*" } }
+    [string] hidden static SectionPatternOptional ([string] $p ) { if ($p) { return "-$p" } else { return [string]::Empty } }
+    [string] hidden static SectionPattern     ([string] $p ) { if ($p) { return "$p" } else { return "*" } }
 
     # API
 
@@ -580,7 +580,7 @@ function Get-FileNamePattern {
     )
 
     if ($Pattern) {
-        return ($Pattern -contains '*') ? $Pattern : ("*{0}*" -f $Pattern)
+        return (($Pattern -contains '*') -or ($Pattern -contains '?')) ? $Pattern : ("*{0}*" -f $Pattern)
     }
 
     $dn = New-DocName               `
