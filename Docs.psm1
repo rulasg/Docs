@@ -672,16 +672,8 @@ function Find-File {
 
     $Pattern | Write-Verbose
 
-    foreach ($store in $(Get-Store -Exist)) {
-        "Searching {0}..." -f ($store.Path | Join-Path -ChildPath $Pattern)  | Write-Verbose
-        $files = Get-ChildItem -Path $store.Path -Filter $Pattern -Recurse:$store.IsRecursive -File
-        foreach ($file in $files) {
-            if ($retFiles -notcontains $file.FullName) {
-                $retFiles += $file.FullName
-                $file
-            }
-        }
-    }
+    $files = Get-Store -Exist | Get-ChildItem -Filter $Pattern -Recurse:$store.IsRecursive -File
+    $files | Select-Object -Unique | Resolve-Path
     
 } Export-ModuleMember -Function Find-File -Alias "f"
 

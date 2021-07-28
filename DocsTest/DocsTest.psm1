@@ -590,8 +590,8 @@ function DocsTest_GetFile_StoresWithSamePath{
     $result = Find-DocsFile -Owner Test2
 
     Assert-Count -Expected 2 -Presented $result
-    Assert-AreEqual -Expected $e["filename2"] -Presented $result[0].Name
-    Assert-AreEqual -Expected $e["filename23"] -Presented $result[1].Name
+    Assert-AreEqual -Expected $e["filename2"] -Presented ($result[0] | Split-Path -Leaf)
+    Assert-AreEqual -Expected $e["filename23"] -Presented ($result[1] | Split-Path -Leaf)
 }
 
 function DocsTest_MoveFile {
