@@ -406,7 +406,8 @@ function Get-Store {
     )
     
     if ($Owner) {
-        $ret = $script:StoresList[$Owner.ToLower()]
+        # $ret = $script:StoresList[$Owner.ToLower()]
+        $ret = $script:StoresList.Keys  | Where-Object {$_ -like $Owner} | ForEach-Object {$script:StoresList[$_]}
     }
     else {
         $ret = $script:StoresList.Values 
@@ -658,7 +659,7 @@ function Find-File {
         [parameter()][switch] $Recurse
     )
     
-    $retFiles = @()
+
     $Pattern | Write-Verbose
     $Pattern = Get-FileNamePattern `
         -Pattern $Pattern          `
@@ -673,7 +674,7 @@ function Find-File {
     $Pattern | Write-Verbose
 
     $files = Get-Store -Exist | Get-ChildItem -Filter $Pattern -Recurse:$store.IsRecursive -File
-    $files | Select-Object -Unique | Resolve-Path
+    $files | Select-Object -Unique | Convert-Path
     
 } Export-ModuleMember -Function Find-File -Alias "f"
 
