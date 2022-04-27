@@ -656,6 +656,7 @@ function Find-File {
         [parameter(ValueFromPipelineByPropertyName)][string]$What,
         [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
         [parameter(ValueFromPipelineByPropertyName)][string]$Type,
+        [parameter()][switch] $JustName,
         [parameter()][switch] $Recurse
     )
     
@@ -674,8 +675,15 @@ function Find-File {
     $Pattern | Write-Verbose
 
     $files = Get-Store -Exist | Get-ChildItem -Filter $Pattern -Recurse:$store.IsRecursive -File
-    $files | Select-Object -Unique | Convert-Path
-    
+
+    $ret = $files | Select-Object -Unique | Convert-Path
+
+    if ($JustName) {
+        return $ret | Split-Path -Leaf
+    } else {
+        return $ret
+    }
+
 } Export-ModuleMember -Function Find-File -Alias "f"
 
 function Get-File {

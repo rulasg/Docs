@@ -282,6 +282,11 @@ function DocsTest_Find_Simple{
     Assert-Count -Expected 1 -Presented $result
     Assert-AreEqualPath -Expected $FileFullName2 -Presented $result
 
+    $result = Find-DocsFile -Owner Test -JustName
+    
+    Assert-Count -Expected 1 -Presented $result
+    Assert-AreEqualPath -Expected $filename -Presented $result
+
 }
 
 function DocsTest_Find_MultiFolder {
