@@ -402,17 +402,21 @@ function Get-Store {
     [Alias("gs")]
     param (
         [parameter()][string] $Owner,
+        [parameter()][string] $Target,
         [parameter()][switch] $Exist
     )
+
+    $ret = $script:StoresList.Values 
     
     if ($Owner) {
-        # $ret = $script:StoresList[$Owner.ToLower()]
-        $ret = $script:StoresList.Keys  | Where-Object {$_ -like $Owner} | ForEach-Object {$script:StoresList[$_]}
-    }
-    else {
-        $ret = $script:StoresList.Values 
+        $ret = $ret | Where-Object {$_.Owner -like $Owner}
     }
 
+    if ($Target) {
+        $ret = $ret | Where-Object {$_.Target -like $Target}
+    }
+
+    # Return empty
     if (!$ret) {
         return
     }
