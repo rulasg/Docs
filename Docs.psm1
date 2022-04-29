@@ -38,11 +38,11 @@ enum STATUS {
 
 # Classes
 class DocsStore {
+    [string] $Name
     [string] $Owner
+    [string] $Target
     [string] $Path
     [bool] $IsRecursive
-    # [bool] $AddMonthFolder
-    # [bool] $AddYearFolder
     [bool] $Exist
 }
 
@@ -333,32 +333,23 @@ class DocName {
 
 #region Stores
 
+$ANY_TARGET = "any"
+
 function New-Store {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipelineByPropertyName)][string] $Owner,
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)][string] $Target,
         [Parameter(Mandatory, ValueFromPipelineByPropertyName)][string] $Path,   
         [Parameter(ValueFromPipelineByPropertyName)][switch] $IsRecursive
     )
     $o = New-Object -TypeName DocsStore
     
+    $o.Name = $Owner + "_" + $Target
     $o.Owner = $Owner
     $o.IsRecursive = $IsRecursive
     $o.Path = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
-    
-    # if ($Path | Test-Path) {
-    #     $o.Path = $Path | Convert-Path 
-    # }
-    # else {
-    #     if ([System.IO.Path]::IsPathRooted($Path)) {
-    #         $o.Path = $Path
-    #     }
-    #     else {
-    #         Write-Error ("Path has to be rooted if it does not exit [{0}]" -F $Path)
-    #         return
-    #     }
-    # }
-    # $o.Path = [System.IO.Path]::IsPathRooted($Path) ? $Path : (Resolve-Path -Path $Path).Path
+    $o.Target = $Target
 
     $o.Exist = Test-Path -Path $o.Path
 
@@ -370,6 +361,7 @@ function Add-Store {
     param (
         [Parameter(Mandatory)][string] $Owner,
         [Parameter(Mandatory)][string] $Path,   
+        [Parameter()][string] $Target,
         [Parameter()][switch] $IsRecursive,
         [Parameter()][switch] $Force
     )
@@ -382,17 +374,23 @@ function Add-Store {
         $null = New-item -ItemType Directory -Force -Path $Path 
     }
 
-    $keyOwner = $Owner.ToLower()
+    if ($Target) {
+        $targetValue = $Target.ToLower()
+    } else {
+        $targetValue = $ANY_TARGET
+    }
     
-    $o = New-Store -Owner $Owner -Path $Path -IsRecursive:$IsRecursive
+    $key = $Owner.ToLower() + "_" + $targetValue
+    
+    $o = New-Store -Owner $Owner -Path $Path -IsRecursive:$IsRecursive -Target $targetValue
 
-    "[Add-Store] {0} - {1}" -f $keyOwner, $o.Path | Write-Verbose
+    "[Add-Store] {0} - {1}" -f $key, $o.Path | Write-Verbose
 
-    if ((Get-Owners) -contains $keyOwner) {
-        $StoresList[$keyOwner] = $o
+    if ((Get-Owners) -contains $key) {
+        $StoresList[$key] = $o
     }
     else {
-        $StoresList.Add($Owner.ToLower(), $o)
+        $StoresList.Add($key, $o)
     }
 
 } Export-ModuleMember -Function Add-Store
@@ -408,18 +406,42 @@ function Get-Store {
 
     $ret = $script:StoresList.Values 
     
-    if ($Owner) {
+    if ($Owner -and $Target) {
         $ret = $ret | Where-Object {$_.Owner -like $Owner}
-    }
+        $count = $ret.Count
+        "Filtering by Owner[$Owner] Ret.Count[$Count]" | Write-Verbose
 
-    if ($Target) {
         $ret = $ret | Where-Object {$_.Target -like $Target}
+        $count = $ret.Count
+        "Filtering by Target[$Target] Ret.Count[$Count]" | Write-Verbose
+
+        if(!$ret){
+            if($Target -eq $ANY_TARGET){
+                return 
+            } else {
+                $ret = $ret = Get-Store -Owner $Owner -Target $ANY_TARGET
+            }
+        }
+
+    } elseif ($Owner){
+
+        $ret = Get-Store -Owner $Owner -Target $ANY_TARGET
+
+    } elseif ($Target){
+
+        $ret = $ret | Where-Object {$_.Target -like $Target}
+        $count = $ret.Count
+        "Filtering by Target[$Target] Ret.Count[$Count]" | Write-Verbose
     }
 
     # Return empty
     if (!$ret) {
+        "Store not found for Owner[$Owner] Target[$Target]" | Write-Verbose
         return
     }
+
+    $count = $ret.Count
+    "Found Count[$count] for Owner[$Owner] Target[$Target]" | Write-Verbose
 
     $ret | ForEach-Object {
         $r = $_ | New-Store
@@ -498,7 +520,7 @@ function Get-Owners {
     if ([string]::IsNullOrWhiteSpace($Owner)) {
         $Owner = "*"
     }
-    $script:StoresList.Keys | Where-Object { $_ -like $Owner }
+    $script:StoresList.Values | Where-Object { $_.Owner -like $Owner } | ForEach-Object{$_.Owner} | Select-Object -Unique
     
 } Export-ModuleMember -Function Get-Owners -Alias "go"
 
@@ -549,20 +571,21 @@ function ConvertTo-DocName {
     )
         
     process {
-        $filenName = $Path | Split-Path -Leaf
-        $docname = [DocName]::Convert($filenName)
-
+        $fileName = $Path | Split-Path -Leaf
+        $docname = [DocName]::Convert($fileName)
+        
         $NewDocName = New-DocName      `
-            -DocName $docName          `
-            -Date $Date                `
-            -Owner $Owner              `
-            -Target $Target            `
-            -Amount $Amount            `
-            -What $What                `
-            -Description $Description  `
-            -PreDescription $PreDescription  `
-            -Type $Type 
-
+        -DocName $docName          `
+        -Date $Date                `
+        -Owner $Owner              `
+        -Target $Target            `
+        -Amount $Amount            `
+        -What $What                `
+        -Description $Description  `
+        -PreDescription $PreDescription  `
+        -Type $Type 
+        
+        "Converted to DocName [$fileName] " | Write-Verbose
         return $NewDocName
     }
     
@@ -840,15 +863,18 @@ function Move-File {
 
         foreach ($file in $files) {
             
-            # Get Owner from file
-            $owner = (ConvertTo-DocName -Path $file).Owner
+            # Get Doc name info
+            $docName = ConvertTo-DocName -Path $file
+
+            $retOwner = $docName.Owner
+            $retTarget = $docName.Target
 
             # Move file to Store
 
             try {
 
-                # Get Store by owner
-                $store = Get-Store -Owner $Owner
+                # Get Store by owner and Target
+                $store = Get-Store -Owner $retOwner -Target $retTarget
                 if ($store.Count -ne 1) {
                     $status = ($store.Count -eq 0 ? "Unknown" : "Unclear")
                     $destination = [string]::Empty
@@ -860,7 +886,7 @@ function Move-File {
                         throw "FOLDER_NOT_FOUND"
                     }
 
-                    $destination = $Store.Path 
+                    $destination = $store.Path 
         
                     $destinationPath = $destination | Join-Path -ChildPath $File.Name
                     
@@ -914,7 +940,9 @@ function Move-File {
             $retObject = New-Object -TypeName psobject
             $retObject | Add-Member -NotePropertyName "FullName" -NotePropertyValue $File.FullName
             $retObject | Add-Member -NotePropertyName "Name" -NotePropertyValue $File.Name
-            $retObject | Add-Member -NotePropertyName "Owner" -NotePropertyValue $Owner
+            $retObject | Add-Member -NotePropertyName "Owner" -NotePropertyValue $retOwner
+            $retObject | Add-Member -NotePropertyName "Target" -NotePropertyValue $retTarget
+            $retObject | Add-Member -NotePropertyName "Store" -NotePropertyValue $store.Name
             $retObject | Add-Member -NotePropertyName "Destination" -NotePropertyValue ($destination ?? [string]::Empty) 
             $retObject | Add-Member -NotePropertyName "Status" -NotePropertyValue $Status
             
@@ -1030,7 +1058,7 @@ function GetFileCopyName([string] $Path) {
     $count = 0
     while (Test-Path -Path $targetFullname) {
         $count++
-        $nameBase = $File.BaseName + "($count)" + $File.Extension
+        $nameBase = $file.BaseName + "($count)" + $file.Extension
         $targetFullname = Join-Path -Path $file.Directory -ChildPath $nameBase
     }
 

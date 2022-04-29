@@ -29,7 +29,16 @@ function ResetDocsList([switch]$PassThru) {
 function DocsTest_ResetStores {
 
     $TestStoreList = ResetDocsList -PassThru
-    Add-DocsStore -Owner "SampleOwner" -Path "." -IsRecursive
+
+    Assert-Count -Expected 0 -Presented $TestStoreList
+    
+    Add-DocsStore -Owner "SampleOwner" -Path "." -IsRecursive 
+    
+    Assert-Count -Expected 1 -Presented $TestStoreList
+    
+    $result = ResetDocsList -PassThru
+
+    Assert-Count -Expected 0 -Presented $result
 }
 
 function DocsTest_AddStores {
@@ -41,15 +50,50 @@ function DocsTest_AddStores {
 
     Assert-Count -Expected 2 -Presented $TestStoreList
 
-    $o1 = $TestStoreList["SampleOwner".ToLower()]
+    $o1 = $TestStoreList["SampleOwner_any".ToLower()]
     Assert-IsTrue -Condition $o1.IsRecursive
     Assert-AreEqualPath -Expected "." -Presented $o1.Path
     Assert-IsTrue -Condition $o1.Exist
 
-    $o2 = $TestStoreList["SampleOwner2".ToLower()]
+    $o2 = $TestStoreList["SampleOwner2_any".ToLower()]
     Assert-IsFalse -Condition $o2.IsRecursive
     Assert-AreEqualPath -Expected $fakeFolderPath -Presented $o2.Path
     Assert-IsFalse -Condition $o2.Exist
+}
+
+function DocsTest_AddStoreWithTarget{
+
+    $TestStoreList = ResetDocsList -PassThru
+    $fakeFolderPath = Join-Path -Path $Home -ChildPath"fackefolder"
+
+    Add-DocsStore -Owner "SampleOwner" -Path "."  -Target "t1"
+    Add-DocsStore -Owner "SampleOwner" -Path $fakeFolderPath -IsRecursive -Target "t2"
+    Add-DocsStore -Owner "SampleOwner" -Path "." -IsRecursive 
+    Add-DocsStore -Owner "SampleOwner1" -Path "." -IsRecursive 
+
+    Assert-Count -Expected 4 -Presented $TestStoreList
+    
+    $o1 = $TestStoreList["SampleOwner_any".ToLower()]
+    Assert-AreEqual -Expected "SampleOwner" -Presented $o1.Owner
+    Assert-AreEqual -Expected "any" -Presented $o1.Target
+    Assert-IsTrue -Condition $o1.IsRecursive
+    Assert-AreEqualPath -Expected "." -Presented $o1.Path
+    Assert-IsTrue -Condition $o1.Exist
+
+    $o1 = $TestStoreList["SampleOwner_t1".ToLower()]
+    Assert-AreEqual -Expected "SampleOwner" -Presented $o1.Owner
+    Assert-AreEqual -Expected "t1" -Presented $o1.Target
+    Assert-IsFalse -Condition $o1.IsRecursive
+    Assert-AreEqualPath -Expected "." -Presented $o1.Path
+    Assert-IsTrue -Condition $o1.Exist
+
+    $o1 = $TestStoreList["SampleOwner_t2".ToLower()]
+    Assert-AreEqual -Expected "SampleOwner" -Presented $o1.Owner
+    Assert-AreEqual -Expected "t2" -Presented $o1.Target
+    Assert-IsTrue -Condition $o1.IsRecursive
+    Assert-AreEqualPath -Expected $fakeFolderPath -Presented $o1.Path
+    Assert-IsFalse -Condition $o1.Exist
+    
 }
 
 function DocsTest_AddStores_Force {
@@ -64,7 +108,7 @@ function DocsTest_AddStores_Force {
     Add-DocsStore -Owner "SampleOwner" -Path $storeFolder -IsRecursive -Force
 
     Assert-Count -Expected 1 -Presented $TestStoreList
-    $o1 = $TestStoreList["SampleOwner".ToLower()]
+    $o1 = $TestStoreList["SampleOwner_any".ToLower()]
     Assert-IsTrue -Condition $o1.IsRecursive
     Assert-AreEqualPath -Expected $storeFolder -Presented $o1.Path
     Assert-IsTrue -Condition $o1.Exist
@@ -110,18 +154,19 @@ function DocsTest_GetStores {
     Assert-AreEqualPath -Expected $Home -Presented $o3.Path
     Assert-IsTrue -Condition $o3.Exist
 
-    # Owner
+}
 
-    $result2 = Get-DocsStore -Owner "SampleOwner2"
+function DocsTest_GetStoresWithExist {
     
-    Assert-Count -Expected 1 -Presented $result2
+    $fakefolder0 = Join-Path -Path $Home -ChildPath "fackefolder0"
+    $fakefolder2 = Join-Path -Path $Home -ChildPath "fackefolder2"
 
-    $o = $result2
+    ResetDocsList
 
-    Assert-AreEqual -Expected "SampleOwner2" -Presented $o.Owner
-    Assert-IsTrue -Condition $o.IsRecursive
-    Assert-AreEqualPath -Expected $fakefolder2 -Presented $o.Path
-    Assert-IsFalse -Condition $o.Exist
+    Add-DocsStore -Owner "SampleOwner0" -Path $fakefolder0
+    Add-DocsStore -Owner "SampleOwner1" -Path . -IsRecursive
+    Add-DocsStore -Owner "SampleOwner2" -Path $fakefolder2 -IsRecursive
+    Add-DocsStore -Owner "SampleOwner3" -Path $Home
 
     # Exist
 
@@ -136,6 +181,151 @@ function DocsTest_GetStores {
     Assert-IsTrue -Condition $o.Exist
 
     $o = $result3[1]
+    Assert-AreEqual -Expected "SampleOwner3" -Presented $o.Owner
+    Assert-IsFalse -Condition $o.IsRecursive
+    Assert-AreEqualPath -Expected $Home -Presented $o.Path
+    Assert-IsTrue -Condition $o.Exist
+
+}
+function DocsTest_GetStoresWithOwner {
+    
+    $fakefolder0 = Join-Path -Path $Home -ChildPath "fackefolder0"
+    $fakefolder2 = Join-Path -Path $Home -ChildPath "fackefolder2"
+
+    ResetDocsList
+
+    Add-DocsStore -Owner "SampleOwner0" -Path $fakefolder0
+    Add-DocsStore -Owner "SampleOwner1" -Path . -IsRecursive
+    Add-DocsStore -Owner "SampleOwner2" -Path $fakefolder2 -IsRecursive
+    Add-DocsStore -Owner "SampleOwner3" -Path $Home
+
+    # Owner
+
+    $result2 = Get-DocsStore -Owner "SampleOwner2"
+    
+    Assert-Count -Expected 1 -Presented $result2
+
+    $o = $result2
+
+    Assert-AreEqual -Expected "SampleOwner2" -Presented $o.Owner
+    Assert-IsTrue -Condition $o.IsRecursive
+    Assert-AreEqualPath -Expected $fakefolder2 -Presented $o.Path
+    Assert-IsFalse -Condition $o.Exist
+
+}
+
+function DocsTest_GetStoresWithTarget {
+    
+    $fakefolder0 = Join-Path -Path $Home -ChildPath "fackefolder0"
+    $fakefolder2 = Join-Path -Path $Home -ChildPath "fackefolder2"
+
+    ResetDocsList
+
+    Add-DocsStore -Owner "SampleOwner0" -Path $fakefolder0 -Target "Target0"
+    Add-DocsStore -Owner "SampleOwner1" -Path . -IsRecursive -Target "Target1"
+    Add-DocsStore -Owner "SampleOwner2" -Path $fakefolder2 -IsRecursive -Target "Target2"
+    Add-DocsStore -Owner "SampleOwner3" -Path $Home -Target "Target0"
+
+    # Target
+
+    $result2 = Get-DocsStore -Target "Target2"
+    
+    Assert-Count -Expected 1 -Presented $result2
+
+    $o = $result2
+
+    Assert-AreEqual -Expected "SampleOwner2" -Presented $o.Owner
+    Assert-AreEqual -Expected "Target2" -Presented $o.Target
+    Assert-IsTrue -Condition $o.IsRecursive
+    Assert-AreEqualPath -Expected $fakefolder2 -Presented $o.Path
+    Assert-IsFalse -Condition $o.Exist
+
+    $result3 = Get-DocsStore -Target "Target0"
+
+    Assert-Count -Expected 2 -Presented $result3
+
+    $o = $result3[0]
+    Assert-AreEqual -Expected "SampleOwner0" -Presented $o.Owner
+    Assert-IsFalse -Condition $o.IsRecursive
+    Assert-AreEqualPath -Expected $fakefolder0 -Presented $o.Path
+    Assert-IsFalse -Condition $o.Exist
+
+    $o = $result3[1]
+    Assert-AreEqual -Expected "SampleOwner3" -Presented $o.Owner
+    Assert-IsFalse -Condition $o.IsRecursive
+    Assert-AreEqualPath -Expected $Home -Presented $o.Path
+    Assert-IsTrue -Condition $o.Exist
+
+}
+
+function DocsTest_GetStoresWithOwnerAndTarget {
+    
+    $fakefolder0 = Join-Path -Path $Home -ChildPath "fackefolder0"
+    $fakefolder2 = Join-Path -Path $Home -ChildPath "fackefolder2"
+
+    ResetDocsList
+
+    Add-DocsStore -Owner "SampleOwner0" -Path $fakefolder0 -Target "Target0"
+    Add-DocsStore -Owner "SampleOwner1" -Path . -IsRecursive -Target "Target1"
+    Add-DocsStore -Owner "SampleOwner2" -Path $fakefolder2 -IsRecursive -Target "Target2"
+    Add-DocsStore -Owner "SampleOwner3" -Path $Home -Target "Target0"
+    Add-DocsStore -Owner "SampleOwner3" -Path $Home
+
+    # Target
+
+    $result2 = Get-DocsStore -Owner "SampleOwner1" -Target "Target0"
+    
+    Assert-IsNull -Object $result2
+    
+    $result2 = Get-DocsStore -Owner "SampleOwner0" -Target "Target0"
+
+    Assert-Count -Expected 1 -Presented $result2
+
+    $o = $result2
+
+    Assert-AreEqual -Expected "SampleOwner0" -Presented $o.Owner
+    Assert-AreEqual -Expected "Target0" -Presented $o.Target
+    Assert-IsFalse -Condition $o.IsRecursive
+    Assert-AreEqualPath -Expected $fakefolder0 -Presented $o.Path
+    Assert-IsFalse -Condition $o.Exist
+
+    $result3 = Get-DocsStore -Target "Target0"
+
+    Assert-Count -Expected 2 -Presented $result3
+
+    $o = $result3[0]
+    Assert-AreEqual -Expected "SampleOwner0" -Presented $o.Owner
+    Assert-IsFalse -Condition $o.IsRecursive
+    Assert-AreEqualPath -Expected $fakefolder0 -Presented $o.Path
+    Assert-IsFalse -Condition $o.Exist
+
+    $o = $result3[1]
+    Assert-AreEqual -Expected "SampleOwner3" -Presented $o.Owner
+    Assert-IsFalse -Condition $o.IsRecursive
+    Assert-AreEqualPath -Expected $Home -Presented $o.Path
+    Assert-IsTrue -Condition $o.Exist
+
+}
+
+function DocsTest_GetStoresWithTargetAndExist {
+    
+    $fakefolder0 = Join-Path -Path $Home -ChildPath "fackefolder0"
+    $fakefolder2 = Join-Path -Path $Home -ChildPath "fackefolder2"
+
+    ResetDocsList
+
+    Add-DocsStore -Owner "SampleOwner0" -Path $fakefolder0 -Target "Target0"
+    Add-DocsStore -Owner "SampleOwner1" -Path . -IsRecursive -Target "Target1"
+    Add-DocsStore -Owner "SampleOwner2" -Path $fakefolder2 -IsRecursive -Target "Target2"
+    Add-DocsStore -Owner "SampleOwner3" -Path $Home -Target "Target0"
+
+    # Target
+
+    $result3 = Get-DocsStore -Target "Target0" -Exist
+    
+    Assert-Count -Expected 1 -Presented $result3
+
+    $o = $result3
     Assert-AreEqual -Expected "SampleOwner3" -Presented $o.Owner
     Assert-IsFalse -Condition $o.IsRecursive
     Assert-AreEqualPath -Expected $Home -Presented $o.Path
@@ -191,16 +381,32 @@ function DocsTest_GetOwners {
     # Assert-IsFalse -Condition $o2.IsRecursive
     # Assert-AreEqualPath -Expected "$Home/fackefolder" -Presented $o2.Path
     # Assert-IsFalse -Condition $o2.Exist
-
 }
 
+function DocsTest_GetOwnersWithTargets {
+    
+    ResetDocsList
+
+    Add-DocsStore -Owner "SampleOwner" -Path . -IsRecursive 
+    Add-DocsStore -Owner "SampleOwner2" -Path (Join-Path -Path $Home -ChildPath "fackefolder")
+    Add-DocsStore -Owner "SampleOwner" -Path . -IsRecursive -Target "t1"
+
+    $result = Get-DocsOwners
+
+    Assert-Count -Expected 2 -Presented $result
+
+    Assert-AreEqual -Expected "SampleOwner" -Presented $result[0]
+    Assert-AreEqual -Expected "SampleOwner2" -Presented $result[1]
+
+}
 function DocsTest_GetOwners_Filtered {
     
     ResetDocsList
 
-    Add-DocsStore -Owner "kk2k2" -Path . -IsRecursive
+    Add-DocsStore -Owner "kk2k2" -Path (Join-Path -Path $Home -ChildPath "fackefolder") -IsRecursive
     Add-DocsStore -Owner "kk3k2" -Path (Join-Path -Path $Home -ChildPath "fackefolder")
     Add-DocsStore -Owner "kt2k2" -Path . -IsRecursive
+    Add-DocsStore -Owner "kk2k2" -Path . -IsRecursive -Target "t2"
 
     $result = Get-DocsOwners
 
@@ -672,6 +878,108 @@ function DocsTest_MoveFile {
 
 } 
 
+function AddFileToRoot ($Owner, $Target){
+
+    # $key = "FileName-{0}-{1}" -f $Owner,$Target
+
+    $filename = "100101-{0}-{1}-Any_Description.test1" -f $Owner, $Target
+
+    # $Env[$key] = $filename
+    # "This content is fake" | Out-File -FilePath $Env[$key]
+    
+    "This content is fake" | Out-File -FilePath $filename
+
+    return $filename
+}
+function DocsTest_MoveFile_WithTarget_MultiTargets {
+
+    $e = SetupScenario3
+
+    ResetDocsList
+
+    Add-DocsStore -Owner $e["O1"]                  -Path $e["StoreFolder-1-1"] -Force   
+    Add-DocsStore -Owner $e["O1"] -Target $e["T1"] -Path $e["StoreFolder-1-1"] -Force
+    Add-DocsStore -Owner $e["O1"] -Target $e["T3"] -Path $e["StoreFolder-2-3"] 
+    Add-DocsStore -Owner $e["O1"] -Target $e["T2"] -Path $e["StoreFolder-4-4"] -Force
+    Add-DocsStore -Owner $e["O2"] -Target $e["T2"] -Path $e["StoreFolder-4-4"] -Force
+
+    # Create files
+    $FN_1_Any = AddFileToRoot -Owner $e["O1"] -Target $e["TF4"]
+    $FN_O1_T1 = AddFileToRoot -Owner $e["O1"] -Target $e["T1"]
+    $FN_O1_T2 = AddFileToRoot -Owner $e["O1"] -Target $e["T2"]
+    $FN_O1_T3 = AddFileToRoot -Owner $e["O1"] -Target $e["T3"]
+    $FN_O2_T2 = AddFileToRoot -Owner $e["O2"] -Target $e["T2"]
+    
+    # Act
+    $result = Move-DocsFile
+    
+    Assert-Count -Expected 5 -Presented $result
+
+    #Assest
+    Assert-FileMove  -StatusExpected "MOVED" -ResultObject $result -FileName $FN_1_Any -StoreFolder $e["StoreFolder-1-1"] -Owner $e["O1"] -Target "any"  
+    Assert-FileMove  -StatusExpected "MOVED" -ResultObject $result -FileName $FN_O1_T1 -StoreFolder $e["StoreFolder-1-1"] -Owner $e["O1"] -Target $e["T1"]
+    Assert-FileMove  -StatusExpected "MOVED" -ResultObject $result -FileName $FN_O1_T2 -StoreFolder $e["StoreFolder-4-4"] -Owner $e["O1"] -Target $e["T2"]
+    Assert-FileMove  -StatusExpected "MOVED" -ResultObject $result -FileName $FN_O2_T2 -StoreFolder $e["StoreFolder-4-4"] -Owner $e["O2"] -Target $e["T2"]
+    
+    Assert-FileMove -StatusExpected "FOLDER_NOT_FOUND" -ResultObject $result -FileName $FN_O1_T3  -StoreFolder $e["StoreFolder-4-4"] -Owner $e["O1"] -Target $e["T3"]
+}
+
+function Assert-FileItemMove {
+    param(
+        $FileName, $StoreFolder, $StatusExpected, $StatusPresented,
+        [Switch] $ExistFrom,[Switch] $ExistTo, [Switch] $NotExistFrom,[Switch] $NotExistTo, [Switch] $AreTheSame,
+        [Switch] $AreEqual, [Switch] $AreNotEqual
+    )
+    
+    "Assert-FileItemMove [{0}]" -f $FileName | Trace-Message
+
+    #Status
+    Assert-AreEqual -Expected $StatusExpected -presented $StatusPresented -Comment "Move Status"
+
+    $from = $FileName
+    $to = Join-Path -Path $StoreFolder -ChildPath $FileName
+
+    #Existance
+    if ($ExistFrom)    { Assert-ItemExist    -Path $from      -Comment "ExistFrom" }
+    if ($NotExistFrom) { Assert-ItemNotExist -Path $from      -Comment "NotExistFrom" }
+    if ($ExistTo)      { Assert-ItemExist    -Path $to -Comment "ExistTo" }
+    if ($NotExistTo)   { Assert-ItemNotExist -Path $to -Comment "NotExistTo" }
+
+    if ($AreTheSame)   { Assert-AreEqualPath -Expected $to -Presented $FileName -Comment "AreTheSame" }
+    if ($AreNotTheSame){ Assert-AreNotEqualPath -Expected $to -Presented $FileName -Comment "AreNotTheSame" }
+
+    if ($AreEqual)     { Assert-AreEqualContent -Expected $from -Presented $to }
+    if ($AreNotEqual)  { Assert-AreNotEqualContent -Expected $from -Presented $to }
+
+    Write-AssertionSectionEnd
+}
+
+
+function Assert-FileMove ($FileName, $StoreFolder, $Owner, $Target, $ResultObject, $StatusExpected){
+
+    $moveObject = $ResultObject | Where-Object{$_.Name -eq $FileName}
+    
+    switch ($StatusExpected) {
+        "UNKNOWN"                    { Assert-FileItemMove -ExistFrom                                          -FileName $FileName -StoreFolder $StoreFolder -StatusExpected $StatusExpected -StatusPresented $moveObject.Status }
+        "MOVED"                      { Assert-FileItemMove -ExistNotFrom -ExistTo                              -FileName $FileName -StoreFolder $StoreFolder -StatusExpected $StatusExpected -StatusPresented $moveObject.Status }
+        "FOLDER_NOT_FOUND"           { Assert-FileItemMove -ExistFrom    -ExistNotTo                           -FileName $FileName -StoreFolder $StoreFolder -StatusExpected $StatusExpected -StatusPresented $moveObject.Status }
+        "ARE_THE_SAME"               { Assert-FileItemMove -ExistFrom    -ExistTo    -AreTheSame               -FileName $FileName -StoreFolder $StoreFolder -StatusExpected $StatusExpected -StatusPresented $moveObject.Status }
+        "ARE_EQUAL"                  { Assert-FileItemMove -ExistFrom    -ExistTo    -AreEqual  -AreNotTheSame -FileName $FileName -StoreFolder $StoreFolder -StatusExpected $StatusExpected -StatusPresented $moveObject.Status }
+        "ARE_EQUAL_REMOVED_SOURCE"   { Assert-FileItemMove -ExistNotFrom -ExistTo                              -FileName $FileName -StoreFolder $StoreFolder -StatusExpected $StatusExpected -StatusPresented $moveObject.Status }
+        "ARE_NOT_EQUAL"              { Assert-FileItemMove -ExistFrom    -ExistTo    -AreNotEqual              -FileName $FileName -StoreFolder $StoreFolder -StatusExpected $StatusExpected -StatusPresented $moveObject.Status }
+        "ARE_NOT_EQUAL_RENAME_SOURCE"{ Assert-FileItemMove -ExistNotFrom -ExistTo    -AreNotEqual              -FileName $FileName -StoreFolder $StoreFolder -StatusExpected $StatusExpected -StatusPresented $moveObject.Status  
+            $toFile = Join-Path -Path $StoreFolder -ChildPath $FileName | Get-Item
+            $newToFile = Join-Path -Path $StoreFolder -ChildPath ($toFile.BaseName + "(1)" + $toFile.Extension) | Get-Item
+            Assert-ItemExist -Path 
+            Assert-AreNotEqualContent -Expected $toFile.FullName -Presented $newToFile.FullName
+        }
+
+        Default {
+            throw -Message "Unknown Status"
+        }
+    }
+}
+
 function DocsTest_MoveFileItem{
     
     $filename1 = "filename1.txt"
@@ -679,33 +987,26 @@ function DocsTest_MoveFileItem{
     $destinationFolder1 = Join-Path -Path '.' -ChildPath "childfolder1" -AdditionalChildPath "childfolder12"
     $destinationFolder2 = Join-Path -Path '.' -ChildPath "childfolder1" -AdditionalChildPath "childfolder12"
 
-
     "some content" | Out-File -FilePath $filename1
     "some content" | Out-File -FilePath $filename2
 
-    Assert-ItemExist -Path $filename1    
-    Assert-ItemNotExist -Path $destinationFolder1
+    # Not store folder
+    $status = Move-DocsFileItem -Path $filename1 -Destination $destinationFolder1
 
-    $result = Move-DocsFileItem -Path $filename1 -Destination $destinationFolder1
-
-    Assert-AreEqual -Expected FOLDER_NOT_FOUND -Presented $result
-    Assert-ItemExist -Path $filename1    
-    Assert-ItemNotExist -Path $destinationFolder1
-
+    Assert-FileItemMove  -StatusExpected "FOLDER_NOT_FOUND" -StatusPresented $status -FileName $filename1 -StoreFolder $destinationFolder1  -ExistFrom -NotExistTo
+    
+    # With store folder
     $null = New-Item -Path $destinationFolder1 -ItemType Directory
-    $result = Move-DocsFileItem -Path $filename1 -Destination $destinationFolder1
+    
+    $status = Move-DocsFileItem -Path $filename1 -Destination $destinationFolder1
+    
+    Assert-FileItemMove  -StatusExpected "MOVED" -StatusPresented $status -FileName $filename1 -StoreFolder $destinationFolder1  -NotExistFrom -ExistTo
+    
+    # Not Store folder with force
+    $status = Move-DocsFileItem -Path $filename2 -Destination $destinationFolder2 -Force
+    
+    Assert-FileItemMove  -StatusExpected "MOVED" -StatusPresented $status -FileName $filename2 -StoreFolder $destinationFolder2  -NotExistFrom -ExistTo
 
-    Assert-AreEqual -Expected MOVED -Presented $result
-    Assert-ItemNotExist -Path $filename1    
-    Assert-ItemExist -Path $destinationFolder1
-    Assert-ItemExist -Path (Join-Path -Path $destinationFolder1 -ChildPath $filename1)
-
-    $result = Move-DocsFileItem -Path $filename2 -Destination $destinationFolder2 -Force
-
-    Assert-AreEqual -Expected MOVED -Presented $result
-    Assert-ItemNotExist -Path $filename2    
-    Assert-ItemExist -Path $destinationFolder2
-    Assert-ItemExist -Path (Join-Path -Path $destinationFolder2 -ChildPath $filename2)
 }
 
 function DocsTest_MoveFile_Path {
@@ -1375,6 +1676,64 @@ function SetupScenario2 () {
     Write-AssertionSectionEnd
 
     return $Evidence
+}
+
+function SetupScenario3 () {
+    
+    $e = New-Object 'System.Collections.Generic.Dictionary[[string],[string]]'
+    
+    $e["O1"] = "Owner1"
+    $e["O2"] = "Owner2"
+
+    $e["T1"]  = "T1"
+    $e["T2"]  = "T2"
+    $e["T3"]  = "T3"
+    $e["TF4"] = "TF4"
+    $e["TF5"] = "TF5"
+
+    # StoresFolder
+    $e["StoreFolder-1-1"] = "." | Join-Path -ChildPath "FP1" -AdditionalChildPath "FC1"
+    $e["StoreFolder-2-2"] = "." | Join-Path -ChildPath "FP2" -AdditionalChildPath "FC2"
+    $e["StoreFolder-2-3"] = "." | Join-Path -ChildPath "FP2" -AdditionalChildPath "FC3"
+    $e["StoreFolder-4-4"] = "." | Join-Path -ChildPath "FP4" -AdditionalChildPath "FC4"
+
+    # Stores
+    # ResetDocsList
+    # Add-DocsStore -Owner $e["O1"]                  -Path $e["StoreFolder-1-1"] -force
+    # Add-DocsStore -Owner $e["O1"] -Target $e["T1"] -Path $e["StoreFolder-1-1"] -force
+    # Add-DocsStore -Owner $e["O1"] -Target $e["T3"] -Path $e["StoreFolder-2-3"] -force
+    # Add-DocsStore -Owner $e["O1"] -Target $e["T2"] -Path $e["StoreFolder-4-4"]
+    # Add-DocsStore -Owner $e["O2"]                  -Path $e["StoreFolder-2-2"] -Force
+
+    #Files
+    # $e["FileName-O1-TF4"] = "100101-{0}-{1}-Any_Description.test1" -f $e["O1"], $e["TF4"]
+    # $e["FileName-O1-T1"]  = "110213-{0}-{1}-Any_Description.test1" -f $e["O1"], $e["T1"]    
+    # $e["FileName-O1-T2"]  = "100201-{0}-{1}-Any_Description.test1" -f $e["O1"], $e["T2"]    
+    # $e["FileName-O2-TF5"] = "110323-{0}-{1}-Any_Description.test"  -f $e["O2"], $e["TF5"]
+    # $e["FileName-O2-T2"]  = "110323-{0}-{1}-Any_Description.test"  -f $e["O2"], $e["T2"]
+    # $e["FileName-O1-T3"]  = "100201-{0}-{1}-Any_Description.test1" -f $e["O1"], $e["T3"]    
+    # $e["FileName-NoDate"] = "Test1-andnomore.txt"
+    # $e["FileName-D-D"]    = "121212-fakename.txt"
+    # $e["FileName-OW"]     = "122012-OtherOwner-Description.txt" 
+    # $e["FileName-OW-TW"]  = "122012-OtherOwner-Target-Description.txt" 
+
+
+    # Create files
+    #"This content is fake" | Out-File -FilePath $e["FileName-O1-TF4"]
+    #"This content is fake" | Out-File -FilePath $e["FileName-O1-T1"] 
+    #"This content is fake" | Out-File -FilePath $e["FileName-O1-T2"] 
+    #"This content is fake" | Out-File -FilePath $e["FileName-O1-T3"] 
+    #"This content is fake" | Out-File -FilePath $e["FileName-O2-TF5"] 
+    #"This content is fake" | Out-File -FilePath $e["FileName-NoDate"]
+    #"This content is fake" | Out-File -FilePath $e["FileName-D-D"]
+    #"This content is fake" | Out-File -FilePath $e["FileName-OW"]
+    #"This content is fake" | Out-File -FilePath $e["FileName-OW-TW"]
+
+    #Assert-Count -Expected 9 -Presented (Get-ChildItem -File -Recurse)
+    
+    Write-AssertionSectionEnd
+
+    return $e
 }
 
 function Get-TodayDateReverse() {

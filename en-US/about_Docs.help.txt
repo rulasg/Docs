@@ -2,16 +2,41 @@ TOPIC
     about_Docs
 
 SHORT DESCRIPTION
-    A short, one-line description of the topic contents.
+    `Docs` module will provide a framework to store documents on a file system based on filename and folder references.
 
 LONG DESCRIPTION
-    A detailed, full description of the subject or purpose of the module.
+    
+    The lifecycle of a document could be described with the following steps
+
+    1. Initialize the Stores if needed with `Reset-StoresList`. By default it will initialize on first use.
+    2. Add folders to Stores with `Add-DocsStore`
+    3. Move to a store folder with `Set-DocsLocationToStore`
+    4. Move Docs to Store folders `Move-DocsFile | Format-DocsMoveStatus`
+    5. Find docs on stores with `Find-DocsFile`
+    6. Test if a doc has a correct doc name with `Test-DocsFile`
+    7. Rename a document with `Rename-DocFile`
+    8. List Stores folders with `Get-DocsStore`
 
 EXAMPLES
-    Examples of how to use the module or how the subject feature works in practice.
+    Add a folder to the stores
+
+    `Add-DocsStore -Owner "rulasg" -Path $rulasgDocStore -IsRecursive`
+
+    All docs with the "rulasg" owner will be move to $rulasDocStore folder when calling `Move-DocsFile`
+
+    NOTE
+        -IsRecursive : sets the Find-DocsFile command to look for docs on the root and subfolders of the store folder. Default only looks on the root.
+
+EXAMPLES
+    Add a folder to the stores with target.
+
+    `Add-DocsStore -Owner "rulasg" -Path $rulasgDocStore -IsRecursive` -Target "TargetName"
+
+    All docs with the "rulasg" owner AND the "TargetName" target will be move to $rulasDocStore folder when calling `Move-DocsFile`.
+    If Target is not specified "any" is assumed. "rulasg" owned docs will move if no other folder with it's target exists on stores folders.
 
 KEYWORDS
-    Terms or titles on which you might expect your users to search for the information in this topic.
+    Documents Secrets Folders Files
 
 SEE ALSO
     Text-only references for further reading. Hyperlinks cannot work in the PowerShell console.
