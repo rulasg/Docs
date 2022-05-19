@@ -1166,15 +1166,15 @@ function DocsTest_DocName_Name_Transformations_Defaults{
     $result = $dn.Name() | ConvertTo-DocsDocName
 
     # Date
-    Assert-IsNull -Object $dn.Date
+    Assert-StringIsNullOrEmpty -Presented $dn.Date
     Assert-AreEqualPath -Expected (Get-TodayDateReverse) -Presented $result.Date
     
     # Owner
-    Assert-IsNull -Object $dn.Owner
+    Assert-StringIsNullOrEmpty -Presented  $dn.Owner
     Assert-AreEqualPath -Expected "rulasg" -Presented $result.Owner
     
     # Type
-    Assert-IsNull -Object $dn.Type
+    Assert-StringIsNullOrEmpty -Presented  $dn.Type
     Assert-AreEqualPath -Expected "pdf" -Presented $result.Type
     
     # Description
