@@ -772,16 +772,15 @@ function Get-File {
 function Rename-File {
     [CmdletBinding(SupportsShouldProcess)]
     Param(
-        [Parameter( ValueFromPipeline, ValueFromPipelineByPropertyName)]
-        [Alias("PSPath")] [string[]] $Path,
-        [parameter()][string]$Description,
+        [Parameter( ValueFromPipeline, ValueFromPipelineByPropertyName)][Alias("PSPath")] [string[]] $Path,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Description,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Date,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Target,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
+        [parameter(ValueFromPipelineByPropertyName)][string]$What,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Type,
         [parameter()][string]$PreDescription,
-        [parameter()][string]$Date,
-        [parameter()][string]$Owner,
-        [parameter()][string]$Target,
-        [parameter()][string]$Amount,
-        [parameter()][string]$What,
-        [parameter()][string]$Type,
         [parameter()][switch]$PassThru
     )
 
@@ -1068,11 +1067,11 @@ function GetFileCopyName([string] $Path) {
 
 #region Formats
 function Format-MoveStatus {
-    [Alias("fms")]
+    [Alias("fdms")]
     param (
     )
-    $input | Format-Table Name, Status
-} Export-ModuleMember -Function Format-MoveStatus -Alias "fms"
+    $input | Format-Table Name, Status, Destination
+} Export-ModuleMember -Function Format-MoveStatus -Alias "fdms"
 
 function Format-Name {
     [Alias("fname")]

@@ -1298,6 +1298,8 @@ function DocsTest_ConvertToDocName{
     "121212-owner-target-32#32-What-Desc.txt"                   | ConvertTo-DocsDocName `
     | CheckDocName -Date "121212" -Owner "owner" -Target "target" -What "what" -Amount "32#32" -Description "Desc" -Type "txt"
 
+    "121212-32#32-What-Desc.txt"                                | ConvertTo-DocsDocName `
+    | CheckDocName -Date "121212" -Amount "32#32" -Description "Desc" -Type "txt"
 
     
 }
@@ -1332,6 +1334,38 @@ function DocsTest_RenameFile_SingleFile{
     Assert-ItemNotExist    -Path $newName
     
     Rename-DocsFile -Path $oldName -Owner kk
+    Assert-ItemExist    -Path $newName
+    Assert-Count -Expected 1 -Presented (Get-ChildItem)
+}
+
+function DocsTest_RenameFile_SingleFile_WithAmount{
+
+    $oldName = "122012-32#32-Description.txt"
+    $newName = "122012-kk-32#32-Description.txt"
+    
+    "This content is fake" | Out-File -FilePath $oldName
+    Assert-ItemExist    -Path $oldName
+
+    # Single file 
+    
+    Rename-DocsFile -Path $oldName -Owner kk
+
+    Assert-ItemExist    -Path $newName
+    Assert-Count -Expected 1 -Presented (Get-ChildItem)
+}
+
+function DocsTest_RenameFile_SingleFile_Withowner_WithAmount{
+
+    $oldName = "122012-owner-32#32-Description.txt"
+    $newName = "122012-kk-32#32-Description.txt"
+    
+    "This content is fake" | Out-File -FilePath $oldName
+    Assert-ItemExist    -Path $oldName
+
+    # Single file 
+    
+    Rename-DocsFile -Path $oldName -Owner kk
+
     Assert-ItemExist    -Path $newName
     Assert-Count -Expected 1 -Presented (Get-ChildItem)
 }
@@ -1427,6 +1461,32 @@ function DocsTest_RenameFile_Pipe_String{
     Assert-ItemNotExist    -Path $newName2
     Assert-ItemExist    -Path $newName3
     Assert-Count -Expected 3 -Presented (Get-ChildItem)
+}
+
+function DocsTest_RenameFile_Pipe_String_MultipleParameters{
+
+    $oldName1 = "122011-OtherOwner-Target-Description1.txt"
+    $oldName2 = "122012-OtherOwner-Target2-Description2.txt"
+    $oldName3 = "132013-OtherOwner-Target3-Description3.txt"
+    $newName1 = "122011-kk-Target-Factura-Description1.txt"
+    $newName2 = "122012-kk-Target-Factura-Description2.txt"
+    $newName3 = "132013-kk-Target-Factura-Description3.txt"
+
+    "This content is fake" | Out-File -FilePath $oldName1
+    "This content is fake" | Out-File -FilePath $oldName2
+    "This content is fake" | Out-File -FilePath $oldName3
+
+    $docname = $oldName1 | ConvertTo-DocsDocName
+
+    $docname.Date = ""
+    $docname.Description = ""
+
+    $docname | Rename-DocsFile -Owner kk -What "Factura" -Path (Get-ChildItem)
+
+    Assert-Count -Expected 3 -Presented (Get-ChildItem)
+    Assert-ItemExist    -Path $newName1
+    Assert-ItemExist    -Path $newName2
+    Assert-ItemExist    -Path $newName3
 }
 
 function DocsTest_ConvertToFile_SingleFile {
