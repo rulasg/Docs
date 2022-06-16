@@ -18,10 +18,6 @@ Write-Host "Loading Docs ..." -ForegroundColor DarkCyan
 # Script Variables
 $script:StoresList = @()
 
-function Set-VerboseOn {
-    $VerbosePreference = Continue
-} Export-ModuleMember -Function Set-VerboseOn
-
 #region EnumAndClasses
 # Enums
 
@@ -335,7 +331,7 @@ class DocName {
 
 $ANY_TARGET = "any"
 
-function New-Store {
+function New-DocsStore {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipelineByPropertyName)][string] $Owner,
@@ -356,7 +352,7 @@ function New-Store {
     return $o
 }
 
-function Add-Store {
+function Add-DocsStore {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)][string] $Owner,
@@ -367,7 +363,7 @@ function Add-Store {
     )
     
     if (! $script:StoresList) {
-        Reset-StoresList
+        Reset-DocsStoresList
     }
 
     if (!($Path | Test-Path) -and $Force) {
@@ -382,9 +378,9 @@ function Add-Store {
     
     $key = $Owner.ToLower() + "_" + $targetValue
     
-    $o = New-Store -Owner $Owner -Path $Path -IsRecursive:$IsRecursive -Target $targetValue
+    $o = New-DocsStore -Owner $Owner -Path $Path -IsRecursive:$IsRecursive -Target $targetValue
 
-    "[Add-Store] {0} - {1}" -f $key, $o.Path | Write-Verbose
+    "[Add-DocsStore] {0} - {1}" -f $key, $o.Path | Write-Verbose
 
     if (($StoresList.Keys) -contains $key) {
         $StoresList[$key] = $o
@@ -393,9 +389,9 @@ function Add-Store {
         $StoresList.Add($key, $o)
     }
 
-} Export-ModuleMember -Function Add-Store
+} # Export-ModuleMember -Function Add-DocsStore
 
-function Get-Store {
+function Get-DocsStore {
     [CmdletBinding()]
     [Alias("gs")]
     param (
@@ -404,10 +400,10 @@ function Get-Store {
         [parameter()][switch] $Exist
     )
 
-    $ret = $script:StoresList.Values 
+    $stores = $script:StoresList.Values 
     
     if ($Owner -and $Target) {
-        $ret = $ret | Where-Object {$_.Owner -like $Owner}
+        $ret = $stores | Where-Object {$_.Owner -like $Owner}
         $count = $ret.Count
         "Filtering by Owner[$Owner] Ret.Count[$Count]" | Write-Verbose
 
@@ -419,19 +415,21 @@ function Get-Store {
             if($Target -eq $ANY_TARGET){
                 return 
             } else {
-                $ret = $ret = Get-Store -Owner $Owner -Target $ANY_TARGET
+                $ret = $ret = Get-DocsStore -Owner $Owner -Target $ANY_TARGET
             }
         }
 
     } elseif ($Owner){
 
-        $ret = Get-Store -Owner $Owner -Target $ANY_TARGET
+        $ret = Get-DocsStore -Owner $Owner -Target $ANY_TARGET
 
     } elseif ($Target){
 
-        $ret = $ret | Where-Object {$_.Target -like $Target}
+        $ret = $stores | Where-Object {$_.Target -like $Target}
         $count = $ret.Count
         "Filtering by Target[$Target] Ret.Count[$Count]" | Write-Verbose
+    } else  {
+        $ret = $stores
     }
 
     # Return empty
@@ -443,23 +441,15 @@ function Get-Store {
     $count = $ret.Count
     "Found Count[$count] for Owner[$Owner] Target[$Target]" | Write-Verbose
 
-    $ret | ForEach-Object {
-        $r = $_ | New-Store
-
-        if ($Exist) {
-            if ($r.Exist) {
-                $r
-            }
-        }
-        else {
-            $r
-        }
-
+    if ($Exist) {
+        $ret = $ret | Where-Object{$_.Exist}
     }
 
-} Export-ModuleMember -Function Get-Store -Alias "gs"
+    return $ret
+  
+} # Export-ModuleMember -Function Get-DocsStore -Alias "gs"
 
-function Reset-StoresList {
+function Reset-DocsStoresList {
     [CmdletBinding()]
     param (
         $StoreList
@@ -469,35 +459,35 @@ function Reset-StoresList {
         $script:StoresList = $StoreList        
     }
     else {
-        $script:StoresList = New-StoresList
+        $script:StoresList = New-DocsStoresList
     }    
 
-} Export-ModuleMember -Function Reset-StoresList
+} # Export-ModuleMember -Function Reset-DocsStoresList
 
-function New-StoresList {
+function New-DocsStoresList {
     [CmdletBinding()]
     param()
 
     return New-Object 'System.Collections.Generic.Dictionary[[string],[PSObject]]'
-} Export-ModuleMember -Function New-StoresList
+} # Export-ModuleMember -Function New-DocsStoresList
 
-function Set-LocationToStore {
+function Set-DocsLocationToStore {
     [CmdletBinding()]
-    [Alias("sl")]
+    [Alias("sdl")]
 
     param (
         [parameter(Mandatory, Position = 1, ValueFromPipeline)]
         [ArgumentCompletions( {
                 param($Command, $Parameter, $WordToComplete, $CommandAst, $FakeBoundParams)
-                Get-Owners -Owner $Owner
+                Get-DocsOwners -Owner $Owner
             })]
         [ValidateScript( {
-                $_ -in (Get-Owners)
+                $_ -in (Get-DocsOwners)
             }
         )]
         [string] $Owner
     )
-    $location = Get-Store -Owner $Owner
+    $location = Get-DocsStore -Owner $Owner
 
     if (!$location) {
         "Owner unknown" | Write-Error
@@ -509,9 +499,9 @@ function Set-LocationToStore {
         $location | Set-Location
         Get-ChildItem
     }
-} Export-ModuleMember -Function Set-LocationToStore -Alias "sl"
+} # Export-ModuleMember -Function Set-DocsLocationToStore # -Alias "sl"
 
-function Get-Owners {
+function Get-DocsOwners {
     [CmdletBinding()]
     [Alias("go")]
     param (
@@ -522,12 +512,12 @@ function Get-Owners {
     }
     $script:StoresList.Values | Where-Object { $_.Owner -like $Owner } | ForEach-Object{$_.Owner} | Select-Object -Unique
     
-} Export-ModuleMember -Function Get-Owners -Alias "go"
+} # Export-ModuleMember -Function Get-DocsOwners -Alias "go"
 
 #endregion Store
 
 #region DocName
-function New-DocName {
+function New-DocsDocName {
     [CmdletBinding()]
     Param(
         [Parameter(ValueFromPipeline)][DocName] $DocName,
@@ -554,9 +544,9 @@ function New-DocName {
     $dn.Description = ($PreDescription) ? ("{0}_{1}" -f $PreDescription, $DocName.Description) : $dn.Description
 
     return $dn
-} Export-ModuleMember -Function New-DocName
+} # Export-ModuleMember -Function New-DocsDocName
 
-function ConvertTo-DocName {
+function ConvertTo-DocsDocName {
     Param(
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [Alias("PSPath")] [string[]] $Path,
@@ -574,7 +564,7 @@ function ConvertTo-DocName {
         $fileName = $Path | Split-Path -Leaf
         $docname = [DocName]::Convert($fileName)
         
-        $NewDocName = New-DocName      `
+        $NewDocName = New-DocsDocName      `
         -DocName $docName          `
         -Date $Date                `
         -Owner $Owner              `
@@ -589,7 +579,7 @@ function ConvertTo-DocName {
         return $NewDocName
     }
     
-} Export-ModuleMember -Function ConvertTo-DocName
+} # Export-ModuleMember -Function ConvertTo-DocsDocName
 
 #endregion DocName
 
@@ -611,7 +601,7 @@ function Get-FileNamePattern {
         return (($Pattern -contains '*') -or ($Pattern -contains '?')) ? $Pattern : ("*{0}*" -f $Pattern)
     }
 
-    $dn = New-DocName               `
+    $dn = New-DocsDocName               `
         -Date $Date                `
         -Owner $Owner              `
         -Target $Target            `
@@ -623,7 +613,7 @@ function Get-FileNamePattern {
     return $dn.Pattern()
 } 
 
-function Get-FileName {
+function Get-DocsFileName {
     [CmdletBinding()]
     Param(
         [Parameter(ValueFromPipelineByPropertyName)][string]$Date,
@@ -637,7 +627,7 @@ function Get-FileName {
 
     process {
 
-        $dn = New-DocName              `
+        $dn = New-DocsDocName              `
             -Date $Date                `
             -Owner $Owner              `
             -Target $Target            `
@@ -652,9 +642,9 @@ function Get-FileName {
 
     }
     
-} Export-ModuleMember -Function Get-FileName
+} # Export-ModuleMember -Function Get-DocsFileName
 
-function Test-FileName {
+function Test-DocsFileName {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
@@ -663,15 +653,15 @@ function Test-FileName {
     )
 
     process {
-        $doc = ConvertTo-DocName -Path $FileName  
+        $doc = ConvertTo-DocsDocName -Path $FileName  
 
         $isValid = $doc.IsValid()
 
         return $isValid
     }
-}Export-ModuleMember -Function Test-FileName
+} # Export-ModuleMember -Function Test-FileName
 
-function Find-File {
+function Find-DocsFile {
     [CmdletBinding()]
     [Alias("f")]
     Param(
@@ -701,7 +691,7 @@ function Find-File {
 
     $Pattern | Write-Verbose
 
-    $files = Get-Store -Exist | Get-ChildItem -Filter $Pattern -Recurse:$store.IsRecursive -File
+    $files = Get-DocsStore -Exist | Get-ChildItem -Filter $Pattern -Recurse:$store.IsRecursive -File
 
     $ret = $files | Select-Object -Unique | Convert-Path
 
@@ -711,9 +701,9 @@ function Find-File {
         return $ret
     }
 
-} Export-ModuleMember -Function Find-File -Alias "f"
+} # Export-ModuleMember -Function Find-DocsFile -Alias "f"
 
-function Get-File {
+function Get-DocsFile {
     [CmdletBinding()]
     Param(
         [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
@@ -751,7 +741,7 @@ function Get-File {
         $files = Get-ChildItem -Path $Path -Filter $Pattern -Recurse:$Recurse -File
 
         foreach ($file in $files) {
-            $dn = ConvertTo-DocName -Path $file
+            $dn = ConvertTo-DocsDocName -Path $file
 
             if ( ($dn)?.IsValid()) {
                 # Add to ret
@@ -767,9 +757,9 @@ function Get-File {
         "FilesToMove - Found [{0}] Valid [{1}]" -f $files.Length, $retFiles.Length | Write-Verbose
         return $retFiles
     }
-} Export-ModuleMember -Function Get-File
+} # Export-ModuleMember -Function Get-DocsFile
 
-function Rename-File {
+function Rename-DocsFile {
     [CmdletBinding(SupportsShouldProcess)]
     Param(
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)][Alias("PSPath")] [string[]] $Path,
@@ -791,8 +781,8 @@ function Rename-File {
         
         foreach ($File in $Files) {
             
-            $docName = $File | ConvertTo-DocName
-            $NewDocFile = New-DocName      `
+            $docName = $File | ConvertTo-DocsDocName
+            $NewDocFile = New-DocsDocName      `
                 -DocName $docName          `
                 -Date $Date                `
                 -Owner $Owner              `
@@ -812,23 +802,23 @@ function Rename-File {
                     $ret = $File | Rename-Item -NewName $newFileName -PassThru:$PassThru
                 }
                 elseif ($WhatIfPreference) {
-                    "[Rename-File] | {0} -> {1}" -f $fileName, $newFileName | Write-Verbose
+                    "[Rename-DocsFile] | {0} -> {1}" -f $fileName, $newFileName | Write-Verbose
                 }
                 else {
-                    "[Rename-File] | {0} -> {1}" -f $fileName, $newFileName | Write-Warning
+                    "[Rename-DocsFile] | {0} -> {1}" -f $fileName, $newFileName | Write-Warning
                 }
             } 
             else {
-                "[Rename-File] | {0} == {1}" -f $fileName, $newFileName | Write-Verbose
+                "[Rename-DocsFile] | {0} == {1}" -f $fileName, $newFileName | Write-Verbose
             }
 
             # Only if rename is called with Passthru
             $ret
         }
     }
-} Export-ModuleMember -Function Rename-File
+} # Export-ModuleMember -Function Rename-DocsFile
 
-function Move-File {
+function Move-DocsFile {
     [CmdletBinding(SupportsShouldProcess)]
     Param(
         [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
@@ -848,7 +838,7 @@ function Move-File {
 
     process {
 
-        $files = Get-File        `
+        $files = Get-DocsFile        `
             -Path $Path                `
             -Pattern $Pattern          `
             -Date $Date                `
@@ -863,7 +853,7 @@ function Move-File {
         foreach ($file in $files) {
             
             # Get Doc name info
-            $docName = ConvertTo-DocName -Path $file
+            $docName = ConvertTo-DocsDocName -Path $file
 
             $retOwner = $docName.Owner
             $retTarget = $docName.Target
@@ -873,7 +863,7 @@ function Move-File {
             try {
 
                 # Get Store by owner and Target
-                $store = Get-Store -Owner $retOwner -Target $retTarget
+                $store = Get-DocsStore -Owner $retOwner -Target $retTarget
                 if ($store.Count -ne 1) {
                     $status = ($store.Count -eq 0 ? "Unknown" : "Unclear")
                     $destination = [string]::Empty
@@ -949,9 +939,9 @@ function Move-File {
         }
     }
 
-} Export-ModuleMember -Function Move-File
+} # Export-ModuleMember -Function Move-DocsFile
 
-function Test-File {
+function Test-DocsFile {
     [CmdletBinding()]
     param(
         [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
@@ -981,9 +971,9 @@ function Test-File {
             $ret
         }
     }
-} Export-ModuleMember -Function Test-File
+} # Export-ModuleMember -Function Test-DocsFile
 
-function Move-FileItem {
+function Move-DocsFileItem {
     [CmdletBinding(SupportsShouldProcess)]
     param (
         [parameter(Mandatory, Position = 0, ValueFromPipeline, ValueFromPipelineByPropertyName)] $Path,
@@ -1048,7 +1038,7 @@ function Move-FileItem {
         }
     }
 
-} Export-ModuleMember -Function Move-FileItem
+} # Export-ModuleMember -Function Move-DocsFileItem
 
 function GetFileCopyName([string] $Path) {
     $file = $Path | Get-Item 
@@ -1066,18 +1056,18 @@ function GetFileCopyName([string] $Path) {
 #endregion File
 
 #region Formats
-function Format-MoveStatus {
+function Format-DocsMoveStatus {
     [Alias("fdms")]
     param (
     )
     $input | Format-Table Name, Status, Destination
-} Export-ModuleMember -Function Format-MoveStatus -Alias "fdms"
+} # Export-ModuleMember -Function Format-DocsMoveStatus -Alias "fdms"
 
-function Format-Name {
+function Format-DocsName {
     [Alias("fname")]
     param (
     )
     $input | ForEach-Object { $_.Name() }
-} Export-ModuleMember -Function Format-Name -Alias "fname"
+} # Export-ModuleMember -Function Format-DocsName -Alias "fname"
 
 #endregion Formats

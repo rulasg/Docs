@@ -8,7 +8,7 @@ LONG DESCRIPTION
     
     The lifecycle of a document could be described with the following steps
 
-    1. Initialize the Stores if needed with `Reset-StoresList`. By default it will initialize on first use.
+    1. Initialize the Stores if needed with `Reset-DocsStoresList`. By default it will initialize on first use.
     2. Add folders to Stores with `Add-DocsStore`
     3. Move to a store folder with `Set-DocsLocationToStore`
     4. Move Docs to Store folders `Move-DocsFile | Format-DocsMoveStatus`
