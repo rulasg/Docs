@@ -386,7 +386,7 @@ function Add-Store {
 
     "[Add-Store] {0} - {1}" -f $key, $o.Path | Write-Verbose
 
-    if ((Get-Owners) -contains $key) {
+    if (($StoresList.Keys) -contains $key) {
         $StoresList[$key] = $o
     }
     else {
@@ -772,7 +772,7 @@ function Get-File {
 function Rename-File {
     [CmdletBinding(SupportsShouldProcess)]
     Param(
-        [Parameter( ValueFromPipeline, ValueFromPipelineByPropertyName)][Alias("PSPath")] [string[]] $Path,
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)][Alias("PSPath")] [string[]] $Path,
         [parameter(ValueFromPipelineByPropertyName)][string]$Description,
         [parameter(ValueFromPipelineByPropertyName)][string]$Date,
         [parameter(ValueFromPipelineByPropertyName)][string]$Owner,

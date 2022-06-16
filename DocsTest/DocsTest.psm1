@@ -1338,17 +1338,17 @@ function DocsTest_RenameFile_SingleFile{
     Assert-Count -Expected 1 -Presented (Get-ChildItem)
 }
 
-function DocsTest_RenameFile_SingleFile_WithAmount{
+function DocsTest_RenameFile_SingleFile_WithOutOwner_WithAmount{
 
     $oldName = "122012-32#32-Description.txt"
-    $newName = "122012-kk-32#32-Description.txt"
+    $newName = "122012-kk-32#32-TargetName-Description.txt"
     
     "This content is fake" | Out-File -FilePath $oldName
     Assert-ItemExist    -Path $oldName
 
     # Single file 
     
-    Rename-DocsFile -Path $oldName -Owner kk
+    Rename-DocsFile -Path $oldName -Owner kk -Target "TargetName"
 
     Assert-ItemExist    -Path $newName
     Assert-Count -Expected 1 -Presented (Get-ChildItem)
