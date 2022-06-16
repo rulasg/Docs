@@ -402,32 +402,21 @@ function Get-DocsStore {
 
     $stores = $script:StoresList.Values 
     
-    if ($Owner -and $Target) {
-        $ret = $stores | Where-Object {$_.Owner -like $Owner}
-        $count = $ret.Count
-        "Filtering by Owner[$Owner] Ret.Count[$Count]" | Write-Verbose
+    if ($Owner) {
+        
+        $retOwner = $stores | Where-Object {$_.Owner -like $Owner}
 
-        $ret = $ret | Where-Object {$_.Target -like $Target}
-        $count = $ret.Count
-        "Filtering by Target[$Target] Ret.Count[$Count]" | Write-Verbose
-
-        if(!$ret){
-            if($Target -eq $ANY_TARGET){
-                return 
-            } else {
-                $ret = $ret = Get-DocsStore -Owner $Owner -Target $ANY_TARGET
-            }
+        $ret = $Target ? ($retOwner | Where-Object {$_.Target -like $Target}) : ($retOwner | Where-Object {$_.Target -like $ANY_TARGET})
+        
+        # If we can not find store for specific Target return ANY_TARGET for given OWNER
+        if(!$ret -and ($Target -ne $ANY_TARGET)){
+            $ret = $retOwner | Where-Object {$_.Target -like $ANY_TARGET}
         }
-
-    } elseif ($Owner){
-
-        $ret = Get-DocsStore -Owner $Owner -Target $ANY_TARGET
 
     } elseif ($Target){
 
         $ret = $stores | Where-Object {$_.Target -like $Target}
-        $count = $ret.Count
-        "Filtering by Target[$Target] Ret.Count[$Count]" | Write-Verbose
+
     } else  {
         $ret = $stores
     }
@@ -437,13 +426,13 @@ function Get-DocsStore {
         "Store not found for Owner[$Owner] Target[$Target]" | Write-Verbose
         return
     }
-
-    $count = $ret.Count
-    "Found Count[$count] for Owner[$Owner] Target[$Target]" | Write-Verbose
-
+    
     if ($Exist) {
         $ret = $ret | Where-Object{$_.Exist}
     }
+    
+    $count = $ret.Count
+    "Found Count[$count] for Owner[$Owner] Target[$Target] with Exist[{$Exist}]" | Write-Verbose
 
     return $ret
   
