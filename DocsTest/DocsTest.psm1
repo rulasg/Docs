@@ -1625,6 +1625,11 @@ function DocsTest_ConvertToFile_Pipe_String{
     Assert-Count -Expected 3 -Presented (Get-ChildItem)
 }
 
+function DocsTest_GetDocsName_Simple{
+
+    Assert-NotImplemented
+}
+
 Export-ModuleMember -Function DocsTest_*
 
 function SetupScenario1 () {

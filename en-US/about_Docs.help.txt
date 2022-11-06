@@ -35,6 +35,19 @@ EXAMPLES
     All docs with the "rulasg" owner AND the "TargetName" target will be move to $rulasDocStore folder when calling `Move-DocsFile`.
     If Target is not specified "any" is assumed. "rulasg" owned docs will move if no other folder with it's target exists on stores folders.
 
+EXAMPLES
+    Rename a set of files with Docs name pattern
+
+    `dir .\IMG-20200323-WA0001.jpg | Rename-DocsFile -Owner leo -what Seguimiento -Target Medico -Description Tabla_Cefaleas`
+
+    You can check the parsing of the actual name with `ConvertTo-DocsDocName
+
+    `dir .\IMG-20200323-WA0001.jpg | ConvertTo-DocsDocName | Format-Table`
+
+    If you are still not sure use the `-WhatIf` switch on `Rename-DocsFile` to see the rename result without change
+
+    `dir .\IMG-20200323-WA0001.jpg | Rename-DocsFile -Owner leo -what Seguimiento -Target Medico -Description Tabla_Cefaleas -WhatIf`
+
 KEYWORDS
     Documents Secrets Folders Files
 

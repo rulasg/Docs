@@ -652,7 +652,7 @@ function Test-DocsFileName {
 
 function Find-DocsFile {
     [CmdletBinding()]
-    [Alias("f")]
+    [Alias("fdf")]
     Param(
         [parameter(ValueFromPipeline, Position = 0)][string]$Pattern,
         [parameter(ValueFromPipelineByPropertyName)][string]$Description,
@@ -665,7 +665,6 @@ function Find-DocsFile {
         [parameter()][switch] $JustName,
         [parameter()][switch] $Recurse
     )
-    
 
     $Pattern | Write-Verbose
     $Pattern = Get-FileNamePattern `
@@ -683,6 +682,47 @@ function Find-DocsFile {
     $files = Get-DocsStore -Exist | Get-ChildItem -Filter $Pattern -Recurse:$store.IsRecursive -File
 
     $ret = $files | Select-Object -Unique | Convert-Path
+
+    if ($JustName) {
+        return $ret | Split-Path -Leaf
+    } else {
+        return $ret
+    }
+
+} # Export-ModuleMember -Function Find-DocsFile -Alias "f"
+
+function Find-DocsFile2 {
+    [CmdletBinding()]
+    [Alias("fdf")]
+    Param(
+        [parameter(ValueFromPipeline, Position = 0)][string]$Pattern,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Description,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Date,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Target,
+        [parameter(ValueFromPipelineByPropertyName)][string]$What,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Type,
+        [parameter()][switch] $JustName,
+        [parameter()][switch] $Recurse
+    )
+
+    $Pattern | Write-Verbose
+    $Pattern = Get-FileNamePattern `
+        -Pattern $Pattern          `
+        -Date $Date                `
+        -Owner $Owner              `
+        -Target $Target            `
+        -Amount $Amount            `
+        -What $What                `
+        -Description $Description  `
+        -Type $Type 
+
+    $Pattern | Write-Verbose
+
+    $files = Get-DocsStore -Exist | Get-ChildItem -Filter $Pattern -Recurse:$store.IsRecursive -File
+
+    # $ret = $files | Select-Object -Unique | Convert-Path
 
     if ($JustName) {
         return $ret | Split-Path -Leaf
@@ -747,6 +787,52 @@ function Get-DocsFile {
         return $retFiles
     }
 } # Export-ModuleMember -Function Get-DocsFile
+
+
+function global:Get-DocsName{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)][Alias("PSPath")] [string[]] $Path,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Description,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Date,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Target,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
+        [parameter(ValueFromPipelineByPropertyName)][string]$What,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Type,
+        [parameter()][string]$PreDescription
+    )
+
+    # 201001-rulasg-edp-FacturaLuzGas-203#08-1HSN201000025360.pdf
+
+    begin{
+        
+        $param = @{
+            Description =  (($PreDescription) ? ("{0}_{1}" -f $PreDescription, $DocName.Description) : $dn.Description)
+            Date = $Date
+            Owner = $Owner
+            Target = $Target
+            Amount = $Amount
+            What = $What
+            Type = $Type
+        }
+    }
+    
+    process{
+        
+        $files = Get-ChildItem -Path $Path -File
+        
+        foreach ($file in $files) {
+
+            $ret = $file | ConvertTo-DocsDocName @param
+
+            $ret | Add-MyMember -NotePropertyName Path -NotePropertyValue $file
+            $ret | Add-MyMember -NotePropertyName NewName -NotePropertyValue $ret.Name()
+
+            $ret
+        }
+    }
+}
 
 function Rename-DocsFile {
     [CmdletBinding(SupportsShouldProcess)]
@@ -955,7 +1041,7 @@ function Test-DocsFile {
                 $ret = $false
             }
             else {
-                $ret = $file.Name | Test-FileName
+                $ret = $file.Name | Test-DocsFileName
             }
             $ret
         }
