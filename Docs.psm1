@@ -794,13 +794,13 @@ function global:Get-DocsName{
     Param(
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)][Alias("PSPath")] [string[]] $Path,
         [parameter(ValueFromPipelineByPropertyName)][string]$Description,
+        [parameter(ValueFromPipelineByPropertyName)][string]$PreDescription,
         [parameter(ValueFromPipelineByPropertyName)][string]$Date,
         [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
         [parameter(ValueFromPipelineByPropertyName)][string]$Target,
         [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
         [parameter(ValueFromPipelineByPropertyName)][string]$What,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Type,
-        [parameter()][string]$PreDescription
+        [parameter(ValueFromPipelineByPropertyName)][string]$Type
     )
 
     # 201001-rulasg-edp-FacturaLuzGas-203#08-1HSN201000025360.pdf
@@ -808,7 +808,8 @@ function global:Get-DocsName{
     begin{
         
         $param = @{
-            Description =  (($PreDescription) ? ("{0}_{1}" -f $PreDescription, $DocName.Description) : $dn.Description)
+            Description =  $Description
+            PreDescription = $PreDescription
             Date = $Date
             Owner = $Owner
             Target = $Target
@@ -831,6 +832,31 @@ function global:Get-DocsName{
 
             $ret
         }
+    }
+}
+
+function global:Get-DocsNameSample{
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [parameter(Mandatory,ValueFromPipeline,ValueFromPipelineByPropertyName)][Alias("PSPath")][string[]]$Path,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Date,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Amount
+    ) 
+
+    begin{
+
+        $param =  @{
+            date = $Date
+            owner = 'SampleOwner'
+            target = 'SampleTarget'
+            what = 'SampleWhat'
+            amount = ($Amount ?? '00#00')
+        }
+    }
+
+    process{
+
+        Get-DocsName -path $path @param
     }
 }
 
