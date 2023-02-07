@@ -791,6 +791,7 @@ function Get-DocsFile {
 
 function global:Get-DocsName{
     [CmdletBinding()]
+    [Alias("gdn")]
     Param(
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)][Alias("PSPath")] [string[]] $Path,
         [parameter(ValueFromPipelineByPropertyName)][string]$Description,
