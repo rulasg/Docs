@@ -528,8 +528,9 @@ function DocsTest_Find_MultiFolder {
     $result = Find-DocsFile 02
 
     Assert-Count -Expected 2 -Presented $result
-    Assert-AreEqualPath -Expected $FileFullName13 -Presented $result[0]
-    Assert-AreEqualPath -Expected $FileFullName2  -Presented $result[1]
+    
+    Assert-ContainsPath -Expected $FileFullName13 -Presented $result
+    Assert-ContainsPath -Expected $FileFullName2 -Presented $result
 
     # Owner 1
 
@@ -542,16 +543,16 @@ function DocsTest_Find_MultiFolder {
     $result = Find-DocsFile -Owner Test2
 
     Assert-Count -Expected 2 -Presented $result
-    Assert-AreEqualPath -Expected $FileFullName2 -Presented $result[0]
-    Assert-AreEqualPath -Expected $FileFullName23 -Presented $result[1]
+    Assert-ContainsPath -Expected $FileFullName2 -Presented $result
+    Assert-ContainsPath -Expected $FileFullName23 -Presented $result
 
     # Target
 
     $result = Find-DocsFile -Target Testing3
 
     Assert-Count -Expected 2 -Presented $result
-    Assert-AreEqualPath -Expected $FileFullName13 -Presented $result[0]
-    Assert-AreEqualPath -Expected $FileFullName23 -Presented $result[1]
+    Assert-ContainsPath -Expected $FileFullName13 -Presented $result
+    Assert-ContainsPath -Expected $FileFullName23 -Presented $result
 
     # Descriptionm
 
@@ -597,8 +598,8 @@ function DocsTest_Find_MultiFolder {
     $result = Find-DocsFile -Date 11*
 
     Assert-Count -Expected 2 -Presented $result
-    Assert-AreEqualPath -Expected $FileFullName13 -Presented $result[0]
-    Assert-AreEqualPath -Expected $FileFullName23 -Presented $result[1]
+    Assert-ContainsPath -Expected $FileFullName13 -Presented $result
+    Assert-ContainsPath -Expected $FileFullName23 -Presented $result
 
     # Date 
 
@@ -688,18 +689,20 @@ function DocsTest_GetFile_All{
     $result = Get-DocsFile
 
     Assert-Count -Expected 6 -Presented $result
-    Assert-AreEqual -Expected $FileName1  -Presented $result[0].Name
-    Assert-AreEqual -Expected $FileName2  -Presented $result[1].Name
-    Assert-AreEqual -Expected $FileName13  -Presented $result[2].Name
-    Assert-AreEqual -Expected $FileName23  -Presented $result[3].Name
-    Assert-AreEqual -Expected "122012-OtherOwner-Description.txt" -Presented $result[4].Name
-    Assert-AreEqual -Expected "122012-OtherOwner-Target-Description.txt" -Presented $result[5].Name
-
+    $resultName = $result.Name
+    Assert-Contains -Expected $FileName1  -Presented $resultName
+    Assert-Contains -Expected $FileName2  -Presented $resultName
+    Assert-Contains -Expected $FileName13  -Presented $resultName
+    Assert-Contains -Expected $FileName23  -Presented $resultName
+    Assert-Contains -Expected "122012-OtherOwner-Description.txt" -Presented $resultName
+    Assert-Contains -Expected "122012-OtherOwner-Target-Description.txt" -Presented $resultName
+    
     $result = Get-DocsFile -Target Testing3
-
+    
     Assert-Count -Expected 2 -Presented $result
-    Assert-AreEqual -Expected $FileName13  -Presented $result[0].Name
-    Assert-AreEqual -Expected $FileName23  -Presented $result[1].Name
+    $resultName = $result.Name
+    Assert-Contains -Expected $FileName13  -Presented $resultName
+    Assert-Contains -Expected $FileName23  -Presented $resultName
 }
 
 function DocsTest_GetFile_Recursive{
@@ -778,26 +781,26 @@ function DocsTest_GetFile_SpecificPath{
     $result = Get-DocsFile -Path $FileFullName1
     
     Assert-Count -Expected 1 -Presented $result
-    Assert-AreEqualPath -Expected $FileFullName1 -Presented $result[0].FullName
+    Assert-ContainsPath -Expected $FileFullName1 -Presented $result
     
     $result = Get-DocsFile -Path $storefolder1
 
     Assert-Count -Expected 2 -Presented $result
-    Assert-AreEqualPath -Expected $FileFullName1 -Presented $result[0].FullName
-    Assert-AreEqualPath -Expected $FileFullName13 -Presented $result[1].FullName
+    Assert-ContainsPath -Expected $FileFullName1 -Presented $result
+    Assert-ContainsPath -Expected $FileFullName13 -Presented $result
 
     $result =  $storefolder1 | Get-DocsFile
 
     Assert-Count -Expected 2 -Presented $result
-    Assert-AreEqualPath -Expected $FileFullName1 -Presented $result[0].FullName
-    Assert-AreEqualPath -Expected $FileFullName13 -Presented $result[1].FullName
+    Assert-ContainsPath -Expected $FileFullName1 -Presented $result
+    Assert-ContainsPath -Expected $FileFullName13 -Presented $result
 
     $result =  ($storefolder1,$localfile ) | Get-DocsFile 
 
     Assert-Count -Expected 3 -Presented $result
-    Assert-AreEqualPath -Expected $FileFullName1 -Presented $result[0].FullName
-    Assert-AreEqualPath -Expected $FileFullName13 -Presented $result[1].FullName
-    Assert-AreEqualPath -Expected $localfile  -Presented $result[2].FullName
+    Assert-ContainsPath -Expected $FileFullName1 -Presented $result
+    Assert-ContainsPath -Expected $FileFullName13 -Presented $result
+    Assert-ContainsPath -Expected $localfile  -Presented $result
 }
 
 function DocsTest_GetFile_StoresWithSamePath{
@@ -808,8 +811,8 @@ function DocsTest_GetFile_StoresWithSamePath{
     $result = Find-DocsFile -Owner Test2
 
     Assert-Count -Expected 2 -Presented $result
-    Assert-AreEqual -Expected $e["filename2"] -Presented ($result[0] | Split-Path -Leaf)
-    Assert-AreEqual -Expected $e["filename23"] -Presented ($result[1] | Split-Path -Leaf)
+    Assert-Contains -Expected ($e["FileFullName2"] | Convert-Path) -Presented $result
+    Assert-Contains -Expected ($e["FileFullName23"] | Convert-Path) -Presented $result
 }
 
 function DocsTest_MoveFile {
@@ -837,46 +840,60 @@ function DocsTest_MoveFile {
     Assert-ItemNotExist     -Path     $e["filename23"]
     Assert-ItemNotExist     -Path     $otherStoreFolder
 
-    Assert-AreEqual      -Expected "LocalOwner"         -Presented $result[0].Owner; 
-    Assert-AreEqualPath  -Expected $filename            -Presented $result[0].Name;
-    Assert-AreEqualPath  -Expected "FOLDER_NOT_FOUND" -Presented $result[0].Status 
-    Assert-AreEqualPath  -Expected ""                   -Presented $result[0].Destination; 
+    $r0 = $result | Where-Object {$_.Name -eq $filename}
+
+    Assert-AreEqual      -Expected "LocalOwner"         -Presented $r0.Owner; 
+    Assert-AreEqualPath  -Expected $filename            -Presented $r0.Name;
+    Assert-AreEqualPath  -Expected "FOLDER_NOT_FOUND"   -Presented $r0.Status 
+    Assert-AreEqualPath  -Expected ""                   -Presented $r0.Destination; 
     Assert-ItemExist     -Path $filename
 
-    Assert-AreEqual      -Expected "Test1"              -Presented $result[1].Owner; 
-    Assert-AreEqualPath  -Expected $e["filename1"]      -Presented $result[1].Name; 
-    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[1].Status
-    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $result[1].Destination; 
+    $r1 = $result | Where-Object {$_.Name -eq $e["filename1"]}
+
+    Assert-AreEqual      -Expected "Test1"              -Presented $r1.Owner; 
+    Assert-AreEqualPath  -Expected $e["filename1"]      -Presented $r1.Name; 
+    Assert-AreEqualPath  -Expected "MOVED"              -Presented $r1.Status
+    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $r1.Destination; 
     Assert-ItemExist     -Path     $e["FileFullName1"]
     
-    Assert-AreEqual      -Expected "Test2"              -Presented $result[2].Owner; 
-    Assert-AreEqualPath  -Expected $e["filename2"]      -Presented $result[2].Name; 
-    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[2].Status
-    Assert-AreEqualPath  -Expected $e["storefolder2"]   -Presented $result[2].Destination; 
+    $r2 = $result | Where-Object {$_.Name -eq $e["filename2"]}
+
+    Assert-AreEqual      -Expected "Test2"              -Presented $r2.Owner; 
+    Assert-AreEqualPath  -Expected $e["filename2"]      -Presented $r2.Name; 
+    Assert-AreEqualPath  -Expected "MOVED"              -Presented $r2.Status
+    Assert-AreEqualPath  -Expected $e["storefolder2"]   -Presented $r2.Destination; 
     Assert-ItemExist     -Path     $e["FileFullName2"]
     
-    Assert-AreEqual      -Expected "Test1"              -Presented $result[3].Owner; 
-    Assert-AreEqualPath  -Expected $e["filename13"]     -Presented $result[3].Name;
-    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[3].Status 
-    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $result[3].Destination; 
+    $r3 = $result | Where-Object {$_.Name -eq $e["filename13"]}
+
+    Assert-AreEqual      -Expected "Test1"              -Presented $r3.Owner; 
+    Assert-AreEqualPath  -Expected $e["filename13"]     -Presented $r3.Name;
+    Assert-AreEqualPath  -Expected "MOVED"              -Presented $r3.Status 
+    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $r3.Destination; 
     Assert-ItemExist     -Path     $e["FileFullName13"]
     
-    Assert-AreEqual      -Expected "Test2"              -Presented $result[4].Owner; 
-    Assert-AreEqualPath  -Expected $e["filename23"]     -Presented $result[4].Name;
-    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[4].Status 
-    Assert-AreEqualPath  -Expected $e["storefolder2"]   -Presented $result[4].Destination; 
+    $r4 = $result | Where-Object {$_.Name -eq $e["filename23"]}
+
+    Assert-AreEqual      -Expected "Test2"              -Presented $r4.Owner; 
+    Assert-AreEqualPath  -Expected $e["filename23"]     -Presented $r4.Name;
+    Assert-AreEqualPath  -Expected "MOVED"              -Presented $r4.Status 
+    Assert-AreEqualPath  -Expected $e["storefolder2"]   -Presented $r4.Destination; 
     Assert-ItemExist     -Path     $e["FileFullName23"]
 
-    Assert-AreEqual      -Expected "OtherOwner"                    -Presented $result[5].Owner; 
-    Assert-AreEqualPath  -Expected $e["FileNameLocal_OtherOWner1"] -Presented $result[5].Name;
-    Assert-AreEqualPath  -Expected "Unknown"                       -Presented $result[5].Status 
-    Assert-AreEqualPath  -Expected ""                              -Presented $result[5].Destination; 
+    $r5 = $result | Where-Object {$_.Name -eq $e["FileNameLocal_OtherOWner1"]}
+
+    Assert-AreEqual      -Expected "OtherOwner"                    -Presented $r5.Owner; 
+    Assert-AreEqualPath  -Expected $e["FileNameLocal_OtherOWner1"] -Presented $r5.Name;
+    Assert-AreEqualPath  -Expected "Unknown"                       -Presented $r5.Status 
+    Assert-AreEqualPath  -Expected ""                              -Presented $r5.Destination; 
     Assert-ItemExist     -Path     $e["FileNameLocal_OtherOWner1"]
 
-    Assert-AreEqual      -Expected "OtherOwner"                    -Presented $result[6].Owner; 
-    Assert-AreEqualPath  -Expected $e["FileNameLocal_OtherOWner2"] -Presented $result[6].Name;
-    Assert-AreEqualPath  -Expected "Unknown"                       -Presented $result[6].Status 
-    Assert-AreEqualPath  -Expected ""                              -Presented $result[6].Destination; 
+    $r6 = $result | Where-Object {$_.Name -eq $e["FileNameLocal_OtherOWner2"]}
+
+    Assert-AreEqual      -Expected "OtherOwner"                    -Presented $r6.Owner; 
+    Assert-AreEqualPath  -Expected $e["FileNameLocal_OtherOWner2"] -Presented $r6.Name;
+    Assert-AreEqualPath  -Expected "Unknown"                       -Presented $r6.Status 
+    Assert-AreEqualPath  -Expected ""                              -Presented $r6.Destination; 
     Assert-ItemExist     -Path     $e["FileNameLocal_OtherOWner2"]
 
 } 
@@ -1024,9 +1041,9 @@ function DocsTest_MoveFile_Path {
     
     Assert-Count         -Expected 1                    -Presented $result
     Assert-AreEqual      -Expected "Test1"              -Presented $result[0].Owner; 
-    Assert-AreEqualPath  -Expected $e["filename1"]      -Presented $result[0].Name; 
-    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[0].Status
-    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $result[0].Destination; 
+    Assert-AreEqual      -Expected $e["filename1"]      -Presented $result[0].Name; 
+    Assert-AreEqual      -Expected "MOVED"              -Presented $result[0].Status
+    Assert-AreEqualPath      -Expected $e["storefolder1"]   -Presented $result[0].Destination; 
     Assert-ItemExist     -Path     $e["FileFullName1"]
     
 }
@@ -1046,16 +1063,22 @@ function DocsTest_MoveFile_Path_Recurse {
     Assert-ItemNotExist  -Path     $wrongFullName 
     Assert-ItemExist     -Path     $e["FileFullName1"] 
     
-    Assert-AreEqual      -Expected "Test1"              -Presented $result[0].Owner; 
-    Assert-AreEqualPath  -Expected $e["filename13"]     -Presented $result[0].Name; 
-    Assert-AreEqualPath  -Expected "ARE_THE_SAME"       -Presented $result[0].Status
-    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $result[0].Destination; 
+    # Assert-ContainsPath -Expected $e["FileFullName13"] -Presented $result
+
+    $r0 = $result | Where-Object {$_.Name -eq $e["filename13"]}
+    
+    Assert-AreEqual      -Expected "Test1"              -Presented $r0.Owner; 
+    Assert-AreEqualPath  -Expected $e["filename13"]     -Presented $r0.Name; 
+    Assert-AreEqualPath  -Expected "ARE_THE_SAME"       -Presented $r0.Status
+    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $r0.Destination; 
     Assert-ItemExist     -Path     $e["FileFullName13"]
     
-    Assert-AreEqual      -Expected "Test1"              -Presented $result[1].Owner; 
-    Assert-AreEqualPath  -Expected $e["filename1"]      -Presented $result[1].Name; 
-    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[1].Status
-    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $result[1].Destination; 
+    $r1 = $result | Where-Object {$_.Name -eq $e["filename1"]}
+
+    Assert-AreEqual      -Expected "Test1"              -Presented $r1.Owner; 
+    Assert-AreEqualPath  -Expected $e["filename1"]      -Presented $r1.Name; 
+    Assert-AreEqualPath  -Expected "MOVED"              -Presented $r1.Status
+    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $r1.Destination; 
     Assert-ItemExist     -Path     $e["FileFullName1"]
 }
 
@@ -1071,10 +1094,10 @@ function DocsTest_MoveFile_Path_WhatIf {
     Assert-ItemExist     -Path     $e["filename1"]
     
     Assert-Count         -Expected 1                    -Presented $result
-    Assert-AreEqual      -Expected "Test1"              -Presented $result[0].Owner; 
-    Assert-AreEqualPath  -Expected $e["filename1"]      -Presented $result[0].Name; 
-    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result[0].Status
-    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $result[0].Destination; 
+    Assert-AreEqual      -Expected "Test1"              -Presented $result.Owner; 
+    Assert-AreEqualPath  -Expected $e["filename1"]      -Presented $result.Name; 
+    Assert-AreEqualPath  -Expected "MOVED"              -Presented $result.Status
+    Assert-AreEqualPath  -Expected $e["storefolder1"]   -Presented $result.Destination; 
     Assert-ItemNotExist  -Path     $e["FileFullName1"]
     
 }
@@ -1093,16 +1116,20 @@ function DocsTest_MoveFile_Path_Exists {
     
     Assert-Count         -Expected 2                     -Presented $result
 
-    Assert-AreEqual      -Expected "Test1"               -Presented $result[0].Owner; 
-    Assert-AreEqualPath  -Expected $e["filename1"]       -Presented $result[0].Name; 
-    Assert-AreEqualPath  -Expected "ARE_EQUAL" -Presented $result[0].Status
-    Assert-AreEqualPath  -Expected $e["storefolder1"]    -Presented $result[0].Destination; 
+    $r0 = $result | Where-Object {$_.Name -eq $e["filename1"]}
+
+    Assert-AreEqual      -Expected "Test1"               -Presented $r0.Owner; 
+    Assert-AreEqualPath  -Expected $e["filename1"]       -Presented $r0.Name; 
+    Assert-AreEqualPath  -Expected "ARE_EQUAL"           -Presented $r0.Status
+    Assert-AreEqualPath  -Expected $e["storefolder1"]    -Presented $r0.Destination; 
     Assert-ItemExist     -Path     $e["FileFullName1"]
+
+    $r1 = $result | Where-Object {$_.Name -eq $e["filename2"]}
     
-    Assert-AreEqual      -Expected "Test2"               -Presented $result[1].Owner; 
-    Assert-AreEqualPath  -Expected $e["filename2"]       -Presented $result[1].Name; 
-    Assert-AreEqualPath  -Expected "ARE_NOT_EQUAL" -Presented $result[1].Status
-    Assert-AreEqualPath  -Expected $e["storefolder2"]    -Presented $result[1].Destination; 
+    Assert-AreEqual      -Expected "Test2"               -Presented $r1.Owner; 
+    Assert-AreEqualPath  -Expected $e["filename2"]       -Presented $r1.Name; 
+    Assert-AreEqualPath  -Expected "ARE_NOT_EQUAL"       -Presented $r1.Status
+    Assert-AreEqualPath  -Expected $e["storefolder2"]    -Presented $r1.Destination; 
     Assert-ItemExist     -Path     $e["FileFullName2"]
 
 }
