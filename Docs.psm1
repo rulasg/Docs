@@ -691,47 +691,6 @@ function Find-DocsFile {
 
 } # Export-ModuleMember -Function Find-DocsFile -Alias "f"
 
-function Find-DocsFile2 {
-    [CmdletBinding()]
-    [Alias("fdf")]
-    Param(
-        [parameter(ValueFromPipeline, Position = 0)][string]$Pattern,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Description,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Date,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Target,
-        [parameter(ValueFromPipelineByPropertyName)][string]$What,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Type,
-        [parameter()][switch] $JustName,
-        [parameter()][switch] $Recurse
-    )
-
-    $Pattern | Write-Verbose
-    $Pattern = Get-FileNamePattern `
-        -Pattern $Pattern          `
-        -Date $Date                `
-        -Owner $Owner              `
-        -Target $Target            `
-        -Amount $Amount            `
-        -What $What                `
-        -Description $Description  `
-        -Type $Type 
-
-    $Pattern | Write-Verbose
-
-    $files = Get-DocsStore -Exist | Get-ChildItem -Filter $Pattern -Recurse:$store.IsRecursive -File
-
-    # $ret = $files | Select-Object -Unique | Convert-Path
-
-    if ($JustName) {
-        return $ret | Split-Path -Leaf
-    } else {
-        return $ret
-    }
-
-} # Export-ModuleMember -Function Find-DocsFile -Alias "f"
-
 function Get-DocsFile {
     [CmdletBinding()]
     Param(
