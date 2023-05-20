@@ -672,15 +672,24 @@ function Find-File {
 
     $Pattern | Write-Verbose
 
-    foreach ($store in $(Get-Store -Exist)) {
-        "Searching {0}..." -f ($store.Path | Join-Path -ChildPath $Pattern)  | Write-Verbose
+    $stores = Get-Store -Exist
+
+    $stores | ForEach-Object{ "Store [{0}] IsRecursive [{1}] - {2}" -f $_.Owner, $_.IsRecursive,$_.Path | Write-Verbose }
+
+    foreach ($store in $stores) {
+        # "Searching Recurse [{0}] in {1}..." -f $store.IsRecursive,($store.Owner | Join-Path -ChildPath $Pattern)  | Write-Verbose
         $files = Get-ChildItem -Path $store.Path -Filter $Pattern -Recurse:$store.IsRecursive -File
+        $before = $retFiles.Count
         foreach ($file in $files) {
             if ($retFiles -notcontains $file.FullName) {
                 $retFiles += $file.FullName
                 $file
             }
         }
+        $added = $retFiles.Count - $before
+        $skipped = $files.Count - $added
+        "Found [{0}] new files in {1}/{2} {3} Skipped [{4}]" -f $added, $store.Owner, $Pattern,($store.IsRecursive? "-IsRecursive":""), $skipped| Write-Verbose
+
     }
     
 } Export-ModuleMember -Function Find-File -Alias "f"
