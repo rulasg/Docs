@@ -15,4 +15,4 @@ $psd = get-childitem -Path $PSScriptRoot -Filter *.psd1
 
 Import-Module -Name $psd.FullName -Force
 
-Test-Module -Name $psd.BaseName -TestName DocsTest_Find_MultiFolder_IsRecurse
+Test-Module -Name $psd.BaseName 
