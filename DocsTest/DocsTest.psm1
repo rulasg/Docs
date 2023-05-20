@@ -701,6 +701,91 @@ function DocsTest_Find_MultiFolder {
 
 }
 
+function DocsTest_Find_MultiFolder_IsRecurse {
+
+    $storefolder1 = "." | Join-Path -ChildPath "Fakefolder1" -AdditionalChildPath "FakeStoreFolder1"
+    $storefolder2 = "." | Join-Path -ChildPath "Fakefolder2" -AdditionalChildPath "FakeStoreFolder2"
+
+    $storefolder11 = "." | Join-Path -ChildPath "Fakefolder1" -AdditionalChildPath "FakeStoreFolder1","FakeStoreFolder11" # Recursive
+
+    ResetDocsList
+    Add-DocsStore -Owner test1 -Path $storefolder1 -Force -IsRecursive
+    Add-DocsStore -Owner test2 -Path $storefolder2 -Force
+
+    New-Item -ItemType Directory -Path $storefolder11 # Recursive
+
+    $filename1  = Get-DocsFileName -Owner Test1 -Target Testing1 -Description "Test0 File1"  -Type test1 -Date 100101
+    $filename13 = Get-DocsFileName -Owner Test1 -Target Testing3 -Description "Test File13" -Type test1  -Date 110213
+    $filename2  = Get-DocsFileName -Owner Test2 -Target Testing2 -Description "Test0 File2"  -Type test1 -Date 100201
+    $filename23 = Get-DocsFileName -Owner Test2 -Target Testing3 -Description "Test0 File23" -Type test  -Date 110323
+    $filename113 = Get-DocsFileName -Owner Test1 -Target Testing3 -Description "Test File113 recurse" -Type test1  -Date 110214 # Recursive
+
+    $FileFullName1 = Join-Path -Path $storefolder1 -ChildPath $fileName1 
+    $FileFullName13 = Join-Path -Path $storefolder1 -ChildPath $fileName13 
+    $FileFullName2 = Join-Path -Path $storefolder2 -ChildPath $fileName2 
+    $FileFullName23 = Join-Path -Path $storefolder2 -ChildPath $fileName23 
+    $FileFullName113 = Join-Path -Path $storefolder11 -ChildPath $filename113 # Recursive
+
+    "This content is fake" | Out-File -FilePath $FileFullName1
+    "This content is fake" | Out-File -FilePath $FileFullName13
+    "This content is fake" | Out-File -FilePath $FileFullName2
+    "This content is fake" | Out-File -FilePath $FileFullName23
+    
+    "This content is fake" | Out-File -FilePath $FileFullName113 # Recursive
+
+    # Pattern 0
+
+    $result = Find-DocsFile 02 
+
+    Assert-Count -Expected 3 -Presented $result
+
+    Assert-ContainsPath -Expected $FileFullName113 -Presented $result
+
+    # Owner 1
+
+    Assert-Count -Expected 5 -Presented (Get-ChildItem -File -Recurse)
+
+    $result = Find-DocsFile -Owner Test1 
+
+    Assert-Count -Expected 3 -Presented $result
+    Assert-ContainsPath -Expected $FileFullName113 -Presented $result
+
+    # Target
+
+    $result = Find-DocsFile -Target Testing3
+
+    Assert-Count -Expected 3 -Presented $result
+    Assert-ContainsPath -Expected $FileFullName113 -Presented $result
+
+    # Descriptionm
+
+    $result = Find-DocsFile -Description "*113*"
+
+    Assert-Count -Expected 1 -Presented $result
+    Assert-ContainsPath -Expected $FileFullName113 -Presented $result
+
+    # Date 
+
+    $result = Find-DocsFile -Date *14
+
+    Assert-Count -Expected 1 -Presented $result
+    Assert-ContainsPath -Expected $FileFullName113 -Presented $result
+
+    # Date 
+
+    $result = Find-DocsFile -Date 1102*
+
+    Assert-Count -Expected 2 -Presented $result
+    Assert-ContainsPath -Expected $FileFullName113 -Presented $result
+
+    # Object
+
+    $result = $filename113 | Find-DocsFile
+    Assert-Count -Expected 1 -Presented $result
+    Assert-ContainsPath -Expected $FileFullName113 -Presented $result
+
+}
+
 function DocsTest_TestFile{
 
     # Not exist
