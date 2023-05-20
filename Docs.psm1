@@ -685,7 +685,11 @@ function Find-DocsFile {
 
         $stores = GEt-DocsStore -Exist
 
-        $files = $stores | Get-ChildItem -Filter $Pattern -Recurse:$Recurse 
+        $files = $stores | ForEach-Object {
+            $isRecurse = $Recurse -or $_.IsRecursive
+            $_.Path | Get-ChildItem -Filter $Pattern -Recurse:$isRecurse
+        }
+        
         
         # $files = Get-DocsStore -Exist | Get-ChildItem -Filter $Pattern -Recurse:$store.IsRecursive -File
         
