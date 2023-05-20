@@ -26,6 +26,91 @@ function ResetDocsList([switch]$PassThru) {
     } 
 }
 
+function Get-SampleFunction1{
+    [CmdletBinding()]
+
+    param(
+        [parameter(ValueFromPipelineByPropertyName)][string]$Description,
+        [parameter(ValueFromPipelineByPropertyName)][string]$PreDescription,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Date,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Target,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
+        [parameter(ValueFromPipelineByPropertyName)][string]$What,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Type
+    )
+
+
+        $result = @{
+            Description = $Description
+            PreDescription = $PreDescription
+            Date = $Date
+            Owner = $Owner
+            Target = $Target
+            Amount = $Amount
+            What = $What
+            Type = $Type
+        }
+
+        return $result
+}
+
+function Get-SampleFunction2{
+    [CmdletBinding()]
+
+    param(
+        [parameter(ValueFromPipelineByPropertyName)][string]$Description,
+        [parameter(ValueFromPipelineByPropertyName)][string]$PreDescription,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Date,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Target,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
+        [parameter(ValueFromPipelineByPropertyName)][string]$What,
+        [parameter(ValueFromPipelineByPropertyName)][string]$Type
+    )
+
+
+    begin {
+    }
+    
+    process{
+        $result = @{
+            Description = $Description
+            PreDescription = $PreDescription
+            Date = $Date
+            Owner = $Owner
+            Target = $Target
+            Amount = $Amount
+            What = $What
+            Type = $Type
+        }
+
+        return $result
+    }
+
+}
+
+function DocsTest_NamedParameter{
+
+    $files = @()
+    $files +=  New-TestingFile -Name "test1.txt" -Content "test" -PassThru
+    $files += New-TestingFile -Name "test2.txt" -Content "test" -PassThru
+
+    $docName = Get-ChildItem $files | Get-DocsName -Owner "MyOwner" -Target "MyTarget"  -What MyWhat -Type MyType -Amount MyAmount 
+
+    $result1 = $docName | Get-SampleFunction1
+    
+    Assert-AreEqual -Expected "MyOwner" -Presented $result1.Owner
+    
+    $result2 = $docName | Get-SampleFunction2
+    
+    Assert-AreEqual -Expected @("MyOwner","MyOwner").ToString() -Presented $result2.Owner.ToString()
+    
+    $result3 = $docName | Get-DocsName
+    
+    Assert-AreEqual -Expected @("MyOwner","MyOwner").ToString() -Presented $result3.Owner.ToString()
+}
+
 function DocsTest_ResetStores {
 
     $TestStoreList = ResetDocsList -PassThru

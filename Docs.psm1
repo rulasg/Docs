@@ -552,17 +552,20 @@ function ConvertTo-DocsDocName {
     process {
         $fileName = $Path | Split-Path -Leaf
         $docname = [DocName]::Convert($fileName)
+
+        $param = @{
+            DocName = $docname
+            Description = $Description
+            PreDescription = $PreDescription
+            Date = $Date
+            Owner = $Owner
+            Target = $Target
+            Amount = $Amount
+            What = $What
+            Type = $Type
+        }
         
-        $NewDocName = New-DocsDocName      `
-        -DocName $docName          `
-        -Date $Date                `
-        -Owner $Owner              `
-        -Target $Target            `
-        -Amount $Amount            `
-        -What $What                `
-        -Description $Description  `
-        -PreDescription $PreDescription  `
-        -Type $Type 
+        $NewDocName = New-DocsDocName  @param
         
         "Converted to DocName [$fileName] " | Write-Verbose
         return $NewDocName
@@ -665,9 +668,10 @@ function Find-DocsFile {
         [parameter()][switch] $JustName,
         [parameter()][switch] $Recurse
     )
-
-    $Pattern | Write-Verbose
-    $Pattern = Get-FileNamePattern `
+    process {
+        
+        $Pattern | Write-Verbose
+        $Pattern = Get-FileNamePattern `
         -Pattern $Pattern          `
         -Date $Date                `
         -Owner $Owner              `
@@ -676,19 +680,24 @@ function Find-DocsFile {
         -What $What                `
         -Description $Description  `
         -Type $Type 
+        
+        $Pattern | Write-Verbose
 
-    $Pattern | Write-Verbose
+        $stores = GEt-DocsStore -Exist
 
-    $files = Get-DocsStore -Exist | Get-ChildItem -Filter $Pattern -Recurse:$store.IsRecursive -File
-
-    $ret = $files | Select-Object -Unique | Convert-Path
-
-    if ($JustName) {
-        return $ret | Split-Path -Leaf
-    } else {
-        return $ret
-    }
-
+        $files = $stores | Get-ChildItem -Filter $Pattern -Recurse:$Recurse 
+        
+        # $files = Get-DocsStore -Exist | Get-ChildItem -Filter $Pattern -Recurse:$store.IsRecursive -File
+        
+        $ret = $files | Select-Object -Unique | Convert-Path
+        
+        if ($JustName) {
+            return $ret | Split-Path -Leaf
+        } else {
+            return $ret
+        }
+        
+    } 
 } # Export-ModuleMember -Function Find-DocsFile -Alias "f"
 
 function Get-DocsFile {
@@ -767,6 +776,10 @@ function global:Get-DocsName{
 
     begin{
         
+    }
+    
+    process{
+
         $param = @{
             Description =  $Description
             PreDescription = $PreDescription
@@ -777,9 +790,6 @@ function global:Get-DocsName{
             What = $What
             Type = $Type
         }
-    }
-    
-    process{
         
         $files = Get-ChildItem -Path $Path -File
         
@@ -805,6 +815,10 @@ function global:Get-DocsNameSample{
 
     begin{
 
+    }
+    
+    process{
+
         $param =  @{
             date = $Date
             owner = 'SampleOwner'
@@ -812,9 +826,6 @@ function global:Get-DocsNameSample{
             what = 'SampleWhat'
             amount = ($Amount ?? '00#00')
         }
-    }
-
-    process{
 
         Get-DocsName -path $path @param
     }
