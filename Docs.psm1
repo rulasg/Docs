@@ -1156,11 +1156,13 @@ function Add-MyMember
         [parameter(Mandatory)][string]$NotePropertyName,
         [parameter(Mandatory)][string]$NotePropertyValue
         )
-        
-    if ($Object.$NotePropertyName) {
-        $Object.$NotePropertyName = $NotePropertyValue
-    } else {
-        $object | Add-Member -NotePropertyName $NotePropertyName -NotePropertyValue $NotePropertyValue
-    }
+    process {
+
+        if ($Object.$NotePropertyName) {
+            $Object.$NotePropertyName = $NotePropertyValue
+        } else {
+            $object | Add-Member -NotePropertyName $NotePropertyName -NotePropertyValue $NotePropertyValue
+        }
+    } 
 }
 #endregion Utils
