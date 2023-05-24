@@ -1830,8 +1830,6 @@ function DocsTest_GetDocsName_Simple{
     Assert-NotImplemented
 }
 
-Export-ModuleMember -Function DocsTest_*
-
 function SetupScenario1 () {
     
     $Evidence = New-Object 'System.Collections.Generic.Dictionary[[string],[string]]'
@@ -2027,3 +2025,5 @@ function CheckDocName{
 
     Write-AssertionDot -Color Yellow
 }
+
+Export-ModuleMember -Function DocsTest_*

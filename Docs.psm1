@@ -14,7 +14,6 @@ CREATED: 05/26/2021
 
 Write-Host "Loading Docs ..." -ForegroundColor DarkCyan
 
-
 # Script Variables
 $script:StoresList = @()
 
@@ -1148,21 +1147,22 @@ function Format-DocsName {
 
 #endregion Formats
 
-#region utils
-
-function Add-MyMember{
+#region Utils
+function Add-MyMember   
+{
     [CmdletBinding()]
     param(
         [parameter(Mandatory,ValueFromPipeline)][Object] $object,
         [parameter(Mandatory)][string]$NotePropertyName,
         [parameter(Mandatory)][string]$NotePropertyValue
-    )
+        )
+    process {
 
-    if ($Object.$NotePropertyName) {
-        $Object.$NotePropertyName = $NotePropertyValue
-    } else {
-        $object | Add-Member -NotePropertyName $NotePropertyName -NotePropertyValue $NotePropertyValue
-    }
+        if ($Object.$NotePropertyName) {
+            $Object.$NotePropertyName = $NotePropertyValue
+        } else {
+            $object | Add-Member -NotePropertyName $NotePropertyName -NotePropertyValue $NotePropertyValue
+        }
+    } 
 }
-
-#endregion utils
+#endregion Utils
