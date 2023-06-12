@@ -26,7 +26,7 @@ function ResetDocsList([switch]$PassThru) {
     } 
 }
 
-function Get-SampleFunction1{
+function Get-ParameterObject{
     [CmdletBinding()]
 
     param(
@@ -40,39 +40,6 @@ function Get-SampleFunction1{
         [parameter(ValueFromPipelineByPropertyName)][string]$Type
     )
 
-
-        $result = @{
-            Description = $Description
-            PreDescription = $PreDescription
-            Date = $Date
-            Owner = $Owner
-            Target = $Target
-            Amount = $Amount
-            What = $What
-            Type = $Type
-        }
-
-        return $result
-}
-
-function Get-SampleFunction2{
-    [CmdletBinding()]
-
-    param(
-        [parameter(ValueFromPipelineByPropertyName)][string]$Description,
-        [parameter(ValueFromPipelineByPropertyName)][string]$PreDescription,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Date,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Owner,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Target,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
-        [parameter(ValueFromPipelineByPropertyName)][string]$What,
-        [parameter(ValueFromPipelineByPropertyName)][string]$Type
-    )
-
-
-    begin {
-    }
-    
     process{
         $result = @{
             Description = $Description
@@ -90,25 +57,37 @@ function Get-SampleFunction2{
 
 }
 
-function DocsTest_NamedParameter{
+function DocsTest_GetDocsName_Parameters{
 
-    $files = @()
-    $files +=  New-TestingFile -Name "test1.txt" -Content "test" -PassThru
-    $files += New-TestingFile -Name "test2.txt" -Content "test" -PassThru
+    New-TestingFile -Name "test1.txt" -Content "test"
+    New-TestingFile -Name "test2.txt" -Content "test"
 
-    $docName = Get-ChildItem $files | Get-DocsName -Owner "MyOwner" -Target "MyTarget"  -What MyWhat -Type MyType -Amount MyAmount 
+    $result = Get-ChildItem | Get-DocsName -Owner "MyOwner" -Target "MyTarget"  -What "MyWhat" -Type "MyType" -Amount "MyAmount" -Date "111111"
 
-    $result1 = $docName | Get-SampleFunction1
+    Assert-Count -Expected 2 -Presented $result
     
-    Assert-AreEqual -Expected "MyOwner" -Presented $result1.Owner
+    Assert-AreEqual -Expected @("MyOwner","MyOwner").ToString() -Presented $result.Owner.ToString().ToString()
+    Assert-AreEqual -Expected @("MyTarget","MyTarget").ToString() -Presented $result.Target.ToString()
+    Assert-AreEqual -Expected @("MyWhat","MyWhat").ToString() -Presented $result.What.ToString()
+    Assert-AreEqual -Expected @("MyType","MyType").ToString() -Presented $result.Type.ToString()
+    Assert-AreEqual -Expected @("MyAmount","MyAmount").ToString() -Presented $result.Amount.ToString()
+    Assert-AreEqual -Expected @("111111","111111").ToString() -Presented $result.Date.ToString()
+
+    Assert-Contains -Expected "test1" -Presented $result.Description
+    Assert-Contains -Expected "test2" -Presented $result.Description
+}
+
+function DocsTest_GetDocsName_DefaultDate{
+
+    $CreationTime = (Get-Date).Adddays(-5)
     
-    $result2 = $docName | Get-SampleFunction2
-    
-    Assert-AreEqual -Expected @("MyOwner","MyOwner").ToString() -Presented $result2.Owner.ToString()
-    
-    $result3 = $docName | Get-DocsName
-    
-    Assert-AreEqual -Expected @("MyOwner","MyOwner").ToString() -Presented $result3.Owner.ToString()
+    $file = New-TestingFile -Name "test1.txt" -Content "test" -PassThru
+
+    $file.CreationTime = $CreationTime
+
+    $result = Get-ChildItem | Get-DocsName
+
+    Assert-IsTrue -Condition $result.NewName.StartsWith($CreationTime.ToString("yyMMdd"))
 }
 
 function DocsTest_ResetStores {

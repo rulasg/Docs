@@ -760,7 +760,7 @@ function Get-DocsFile {
 } # Export-ModuleMember -Function Get-DocsFile
 
 
-function global:Get-DocsName{
+function Get-DocsName{
     [CmdletBinding()]
     [Alias("gdn")]
     Param(
@@ -776,10 +776,6 @@ function global:Get-DocsName{
     )
 
     # 201001-rulasg-edp-FacturaLuzGas-203#08-1HSN201000025360.pdf
-
-    begin{
-        
-    }
     
     process{
 
@@ -797,6 +793,11 @@ function global:Get-DocsName{
         $files = Get-ChildItem -Path $Path -File
         
         foreach ($file in $files) {
+
+
+            # #4   feat: [function]How Can I Create File Names Based on Their Time Stamp?
+            # Set default values for file name based on the file
+            $param.Date = [string]::IsNullOrWhiteSpace($param.Date) ? $file.CreationTime.ToString("yyMMdd") : $param.Date
 
             $ret = $file | ConvertTo-DocsDocName @param
 
