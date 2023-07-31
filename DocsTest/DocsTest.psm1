@@ -2002,7 +2002,7 @@ function CheckDocName{
     Assert-AreEqual -Expected $Description -Presented $DocName.Description -Comment "Description"
     Assert-AreEqual -Expected $Type        -Presented $DocName.Type        -Comment "Type"
 
-    Write-AssertionDot -Color Yellow
+    Write-AssertionSectionEnd
 }
 
 Export-ModuleMember -Function DocsTest_*
