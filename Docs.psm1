@@ -12,7 +12,8 @@ AUTHOR: rulasg
 CREATED: 05/26/2021
 #>
 
-Write-Host "Loading Docs ..." -ForegroundColor DarkCyan
+# Write-Host "Loading Docs ..." -ForegroundColor DarkCyan
+Write-Information "Loading Docs ..."
 
 # Script Variables
 $script:StoresList = @()
