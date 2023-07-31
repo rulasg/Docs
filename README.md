@@ -1,4 +1,7 @@
 # Docs
+[![Test with TestingHelper](https://github.com/rulasg/Docs/actions/workflows/test_with_TestingHelper.yml/badge.svg)](https://github.com/rulasg/Docs/actions/workflows/test_with_TestingHelper.yml)
+[![PSScriptAnalyzer](https://github.com/rulasg/Docs/actions/workflows/PSScriptAnalyzer.yml/badge.svg)](https://github.com/rulasg/Docs/actions/workflows/PSScriptAnalyzer.yml)
+[![Deploy on Release Published](https://github.com/rulasg/Docs/actions/workflows/deploy_module_on_release.yml/badge.svg)](https://github.com/rulasg/Docs/actions/workflows/deploy_module_on_release.yml)
 
 [![CodeFactor](https://www.codefactor.io/repository/github/rulasg/docs/badge)](https://www.codefactor.io/repository/github/rulasg/docs)
 
