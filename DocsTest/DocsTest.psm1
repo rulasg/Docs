@@ -77,7 +77,7 @@ function DocsTest_GetDocsName_Parameters{
     Assert-Contains -Expected "test2" -Presented $result.Description
 }
 
-function DocsTest_GetDocsName_DefaultDate{
+function DocsTest_GetDocsName_DefaultDate_FileReationTime{
 
     $CreationTime = (Get-Date).Adddays(-5)
     
@@ -88,6 +88,24 @@ function DocsTest_GetDocsName_DefaultDate{
     $result = Get-ChildItem | Get-DocsName
 
     Assert-IsTrue -Condition $result.NewName.StartsWith($CreationTime.ToString("yyMMdd"))
+}
+
+function DocsTest_GetDocsName_ReadFilesNameValues{
+
+    $fileName = (New-DocsDocName -Owner "MyOwner" -Target "MyTarget"  -What "MyWhat" -Type "MyType" -Amount "999#99" -Date "111111" -Description "MyDescription").Name()
+
+    New-TestingFile -Name $fileName
+
+    $result = Get-DocsName -Path $fileName
+
+    Assert-AreEqual -Expected "MyOwner" -Presented $result.Owner
+    Assert-AreEqual -Expected "MyTarget" -Presented $result.Target
+    Assert-AreEqual -Expected "MyWhat" -Presented $result.What
+    Assert-AreEqual -Expected "MyType" -Presented $result.Type
+    Assert-AreEqual -Expected "999#99" -Presented $result.Amount
+    Assert-AreEqual -Expected "MyDescription" -Presented $result.Description
+    
+    Assert-AreEqual -Expected "111111" -Presented $result.Date
 }
 
 function DocsTest_ResetStores {

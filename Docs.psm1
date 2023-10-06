@@ -795,12 +795,10 @@ function Get-DocsName{
         
         foreach ($file in $files) {
 
-
-            # #4   feat: [function]How Can I Create File Names Based on Their Time Stamp?
-            # Set default values for file name based on the file
-            $param.Date = [string]::IsNullOrWhiteSpace($param.Date) ? $file.CreationTime.ToString("yyMMdd") : $param.Date
-
             $ret = $file | ConvertTo-DocsDocName @param
+
+            # Set default values for file name based on the file
+            $ret.Date = [string]::IsNullOrWhiteSpace($ret.Date) ? $file.CreationTime.ToString("yyMMdd") : $ret.Date
 
             $ret | Add-MyMember -NotePropertyName Path -NotePropertyValue $file
             $ret | Add-MyMember -NotePropertyName NewName -NotePropertyValue $ret.Name()
