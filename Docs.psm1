@@ -1027,9 +1027,8 @@ function Test-DocsFile {
 
         $Path ??= "."
 
-
         try {
-            # if file does not exist Actions pipe files.
+            # if file does not exist Actions pipe fails.
             # Adding try catch to avoid terminating exceptions
             $files = Get-ChildItem -Path $Path -File 2> $null
         }
