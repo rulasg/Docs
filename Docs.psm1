@@ -666,7 +666,8 @@ function Find-DocsFile {
         [parameter(ValueFromPipelineByPropertyName)][string]$Amount,
         [parameter(ValueFromPipelineByPropertyName)][string]$Type,
         [parameter()][switch] $JustName,
-        [parameter()][switch] $Recurse
+        [parameter()][switch] $Recurse,
+        [parameter()][switch] $Open
     )
     process {
         
@@ -683,26 +684,26 @@ function Find-DocsFile {
         
         $Pattern | Write-Verbose
 
-        $stores = GEt-DocsStore -Exist
+        $stores = Get-DocsStore -Exist
 
         $files = $stores | ForEach-Object {
             $isRecurse = $Recurse -or $_.IsRecursive
             $_.Path | Get-ChildItem -Filter $Pattern -Recurse:$isRecurse
         }
         
-        
-        # $files = Get-DocsStore -Exist | Get-ChildItem -Filter $Pattern -Recurse:$store.IsRecursive -File
-        
         $ret = $files | Select-Object -Unique | Convert-Path
         
         if ($JustName) {
-            return $ret | Split-Path -Leaf
-        } else {
-            return $ret
+            $ret = $ret | Split-Path -Leaf
         }
-        
+
+        if ($Open) {
+            $ret | Open-Path
+        }
+
+        return $ret
     } 
-} # Export-ModuleMember -Function Find-DocsFile -Alias "f"
+} # Export-ModuleMember -Function Find-DocsFile -Alias "fdf"
 
 function Get-DocsFile {
     [CmdletBinding()]
