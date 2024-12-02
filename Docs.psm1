@@ -530,7 +530,7 @@ function New-DocsDocName {
     $dn.Type = ($Type)        ? $Type        : $DocName.Type
     
     $dn.Description = ($Description) ? $Description : $DocName.Description
-    $dn.Description = ($PreDescription) ? ("{0}_{1}" -f $PreDescription, $DocName.Description) : $dn.Description
+    $dn.Description = ($PreDescription) ? ("{0}_{1}" -f $PreDescription, $dn.Description) : $dn.Description
 
     return $dn
 } # Export-ModuleMember -Function New-DocsDocName
