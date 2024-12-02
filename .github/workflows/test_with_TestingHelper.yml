@@ -43,6 +43,18 @@ jobs:
       #     { "All test passed" | Write-Verbose -verbose ; exit 0 } 
       #     else 
       #     { "Not all tests passed" | Write-Verbose -verbose ; exit 1 }
-      
+
+      # unstall Testing ehlper
+
+      - name: Setup Testing Helper
+        uses: rulasg/psmodule-setup-action@v1.1
+        with:
+            # Name of the module to setup
+            Name: TestingHelper
+            # Specifies which version of the module to use.
+            Version: 3.0.10-preview 
+            # Allow the use of prerelease version of the module
+            AllowPreReleaseVersions: true
+          
       # Run tests with testing helper
       - uses: rulasg/testinghelper-action@v1
